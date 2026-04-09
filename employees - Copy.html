@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMi POS - Employee Management</title>
+    <script src="lock.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="icon.png">
+
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">AMi POS</div>
+            <ul class="nav-links">
+                <li><a href="index.html">POS</a></li>
+                <li><a href="sales.html">Sales</a></li>
+                <li><a href="employees.html" class="active">Employees</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="customers.html">Customers</a></li>
+                <li><a href="reports.html">Reports</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="analysis.html">Analysis</a></li>
+                <li><a href="settings.html">Settings</a></li>
+                <li><a href="emp/index.html">EMS</a></li>
+            </ul>
+            <div class="nav-actions">
+                <input type="text" id="invoiceSearch" placeholder="Search Invoice (Ctrl+I)" class="btn-sm"
+                    style="padding: 8px 10px; border: 2px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);"
+                    onkeypress="handleInvoiceSearchKey(event)">
+                <select id="themeSelect" onchange="changeTheme(this.value)" class="btn-sm"
+                    style="padding: 5px; border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="black">Black</option>
+                    <option value="gray-black">Gray - Black</option>
+                    <option value="blue">Blue</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Employee Management</h1>
+            <button class="btn btn-primary" onclick="openEmployeeModal()">+ Add Employee</button>
+        </div>
+
+        <!-- Employees Table -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Employees</h2>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Sales Code</th>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Contact</th>
+                            <th>Salary</th>
+                            <th>Total Sales</th>
+                            <th>Total Profit</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeesTableBody">
+                        <tr>
+                            <td colspan="8" class="text-center">No employees found</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Modal -->
+    <div id="employeeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="employeeModalTitle">Add Employee</h2>
+                <button class="modal-close" onclick="closeEmployeeModal()">&times;</button>
+            </div>
+            <form id="employeeForm" onsubmit="saveEmployee(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="empSalesCode">Sales Code *</label>
+                        <input type="text" id="empSalesCode" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="empName">Name *</label>
+                        <input type="text" id="empName" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="empRole">Role *</label>
+                        <input type="text" id="empRole" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="empContact">Contact</label>
+                        <input type="text" id="empContact">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="empSalary">Salary</label>
+                        <input type="number" id="empSalary" step="0.01" min="0">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeEmployeeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="app-footer">
+        <p>Developed & Designed By AMi (Prompt Eng)</p>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="js/sync-manager.js"></script>
+    <script src="employees.js"></script>
+    <script src="voice-control.js"></script>
+</body>
+
+</html>

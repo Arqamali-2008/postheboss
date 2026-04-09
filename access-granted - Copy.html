@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="hacker">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Access Granted</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { margin:0; background:#000; overflow:hidden; }
+    .bg {
+      position: fixed; inset: 0;
+      background: url("HAC/3.gif") center/cover no-repeat;
+      filter: contrast(1.05) saturate(1.1);
+      opacity: 0.95;
+    }
+    .shade {
+      position: fixed; inset: 0;
+      background: radial-gradient(circle at 50% 35%, rgba(0,255,136,0.14), rgba(0,0,0,0.82) 62%);
+    }
+    .wrap {
+      position: fixed; inset: 0;
+      display:flex; align-items:center; justify-content:center;
+      font-family: 'Roboto Mono', monospace;
+      color:#bfffd8;
+    }
+    .panel {
+      width: min(920px, 92vw);
+      border: 1px solid rgba(0,255,136,0.28);
+      background: rgba(0,0,0,0.55);
+      box-shadow: 0 0 50px rgba(0,255,136,0.14);
+      backdrop-filter: blur(6px);
+      padding: 22px 18px;
+    }
+    .center {
+      display:flex; align-items:center; gap: 14px;
+      justify-content:center;
+      padding: 12px 0 16px;
+    }
+    .icon {
+      width: 72px; height: 72px;
+      border-radius: 16px;
+      border: 1px solid rgba(0,255,136,0.25);
+      box-shadow: 0 0 22px rgba(0,255,136,0.18);
+      background: rgba(0,0,0,0.45);
+      object-fit: cover;
+    }
+    .stamp {
+      font-size: 18px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-shadow: 0 0 18px rgba(0,255,136,0.35);
+    }
+    .ticker {
+      margin-top: 8px;
+      height: 260px;
+      overflow: hidden;
+      border-top: 1px solid rgba(0,255,136,0.18);
+      padding-top: 12px;
+      position: relative;
+    }
+    .stream {
+      white-space: pre-wrap;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: rgba(191,255,216,0.92);
+      animation: scrollUp 7.5s linear forwards;
+    }
+    @keyframes scrollUp {
+      from { transform: translateY(95%); opacity: 0.95; }
+      to   { transform: translateY(-130%); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="shade"></div>
+  <div class="wrap">
+    <div class="panel">
+      <div class="center">
+        <img src="icon.png" alt="POS" class="icon" />
+        <div class="stamp">ACCESS GRANTED</div>
+      </div>
+      <div class="ticker">
+        <div class="stream" id="stream"></div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="a2Low" src="HAC/2.mp3" preload="auto" loop></audio>
+  <audio id="a3" src="HAC/3.mp3" preload="auto"></audio>
+
+  <script>
+    const stream = document.getElementById('stream');
+    const a2Low = document.getElementById('a2Low');
+    const a3 = document.getElementById('a3');
+    let done = false;
+
+    // Enforce stage order: must come after successful login.
+    if (sessionStorage.getItem('hacLoginPassed') !== 'true') {
+      window.location.href = 'login.html';
+    }
+
+    stream.textContent =
+      '[+] SESSION AUTHORIZED\\n' +
+      '[+] IDENTITY VERIFIED\\n' +
+      '[+] POS MODULES: LOADING\\n' +
+      '[+] INVENTORY: READY\\n' +
+      '[+] SALES: READY\\n' +
+      '[+] SYNC: READY\\n' +
+      '[+] PRINTER: READY\\n' +
+      '[+] SECURE CHANNEL: LOCKED\\n\\n' +
+      '>>> INITIALIZING UI RENDER PIPELINE...\\n' +
+      '>>> PATCHING HOTKEYS + SCANNER INPUT...\\n' +
+      '>>> FINALIZING...\\n\\n' +
+      'STATUS: GREEN\\n' +
+      'STATUS: GREEN\\n' +
+      'STATUS: GREEN\\n';
+
+    function safePlay(el, volume = 1.0) {
+      if (!el) return;
+      try {
+        el.volume = volume;
+        const p = el.play();
+        if (p && p.catch) p.catch(() => {});
+      } catch (_) {}
+    }
+
+    function goNext() {
+      if (done) return;
+      done = true;
+      try { if (a2Low) { a2Low.pause(); a2Low.currentTime = 0; } } catch (_) {}
+      try { if (a3) { a3.pause(); a3.currentTime = 0; } } catch (_) {}
+      try { sessionStorage.setItem('skipIndexSplash', 'true'); } catch (_) {}
+      try { sessionStorage.removeItem('hacLoginPassed'); } catch (_) {}
+      window.location.href = 'index.html';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Access-granted low-volume bed track + delayed main track.
+      safePlay(a2Low, 0.22);
+      setTimeout(() => safePlay(a3, 1.0), 1000);
+
+      // Go to POS after the long "access granted" moment
+      setTimeout(() => goNext(), 8500);
+
+      // Skip this scene with Alt.
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Alt') {
+          e.preventDefault();
+          goNext();
+        }
+      });
+
+      // Autoplay unlock fallback
+      const unlock = () => {
+        safePlay(a2Low, 0.22);
+        safePlay(a3, 1.0);
+      };
+      window.addEventListener('pointerdown', unlock, { once: true });
+      window.addEventListener('keydown', unlock, { once: true });
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMi POS - Sales & Profit Reports</title>
+    <script src="lock.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="icon.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">AMi POS</div>
+            <ul class="nav-links">
+                <li><a href="index.html">POS</a></li>
+                <li><a href="sales.html">Sales</a></li>
+                <li><a href="employees.html">Employees</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="customers.html">Customers</a></li>
+                <li><a href="reports.html" class="active">Reports</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="analysis.html">Analysis</a></li>
+                <li><a href="barcode.html">Barcode</a></li>
+                <li><a href="settings.html">Settings</a></li>
+                <li><a href="emp/index.html">EMS</a></li>
+            </ul>
+            <div class="nav-actions">
+                <input type="text" id="invoiceSearch" placeholder="Search Invoice (Ctrl+I)" class="btn-sm"
+                    style="padding: 8px 10px; border: 2px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);"
+                    onkeypress="handleInvoiceSearchKey(event)">
+                <select id="themeSelect" onchange="changeTheme(this.value)" class="btn-sm"
+                    style="padding: 5px; border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="black">Black</option>
+                    <option value="gray-black">Gray - Black</option>
+                    <option value="blue">Blue</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Sales & Profit Reports</h1>
+            <div>
+                <button class="btn btn-primary" onclick="exportReportPDF()">Export PDF</button>
+                <button class="btn btn-success" onclick="exportReportExcel()">Export Excel</button>
+                <button class="btn btn-warning" onclick="printReport()">Print Report</button>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Report Filters</h2>
+            </div>
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Report Type</label>
+                    <select id="reportType" onchange="updateReportType()">
+                        <option value="sales">Sales Report</option>
+                        <option value="profit">Profit Report</option>
+                        <option value="employee">Employee Performance</option>
+                        <option value="product">Product Performance</option>
+                        <option value="customer">Customer Analysis</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>From Date</label>
+                    <input type="date" id="reportFromDate" onchange="generateReport()">
+                </div>
+                <div class="filter-group">
+                    <label>To Date</label>
+                    <input type="date" id="reportToDate" onchange="generateReport()">
+                </div>
+                <div class="filter-group">
+                    <label>Employee</label>
+                    <select id="reportEmployee" onchange="generateReport()">
+                        <option value="">All Employees</option>
+                    </select>
+                </div>
+                <div class="filter-group" id="categoryFilterGroup" style="display: none;">
+                    <label>Category 1</label>
+                    <select id="reportCategory" onchange="generateReport()">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div class="filter-group" id="category2FilterGroup" style="display: none;">
+                    <label>Category 2</label>
+                    <select id="reportCategory2" onchange="generateReport()">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <button class="btn btn-primary" onclick="generateReport()" style="margin-top: 20px;">Generate
+                        Report</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="stats-grid" id="reportSummaryCards">
+            <!-- Summary cards will be populated here -->
+        </div>
+
+        <!-- Charts -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Sales Trend</h2>
+            </div>
+            <div style="padding: 20px;">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Report Table -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title" id="reportTableTitle">Report Data</h2>
+            </div>
+            <div class="table-container">
+                <table id="reportTable">
+                    <thead id="reportTableHead">
+                        <!-- Table headers will be populated here -->
+                    </thead>
+                    <tbody id="reportTableBody">
+                        <tr>
+                            <td colspan="10" class="text-center">Select filters and click "Generate Report"</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="app-footer">
+        <p>Developed & Designed By AMi (Prompt Eng)</p>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="reports.js"></script>
+    <script src="voice-control.js"></script>
+</body>
+
+</html>

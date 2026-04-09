@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMi POS - Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="icon.png">
+
+</head>
+
+<body class="login-page" data-theme="hacker">
+    <div class="hac-login-bg">
+        <video class="hac-login-video" id="loginBgVideo" autoplay muted playsinline loop>
+            <source src="HAC/login.mp4" type="video/mp4">
+        </video>
+        <div class="hac-login-shade"></div>
+        <div class="hac-login-noise"></div>
+    </div>
+
+    <div class="login-container hac-login-container">
+        <div class="login-box hac-login-box">
+            <div class="login-header">
+                <div class="hac-brand-top">
+                    <img src="icon.png" alt="POS The Boss">
+                    <div class="hac-brand-text">POS THE BOSS</div>
+                </div>
+                <h1 class="hac-title">AMi POS</h1>
+                <p class="hac-sub">HAC Secure Access Console</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="password">Passkey</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="rememberMe" name="rememberMe">
+                    <label for="rememberMe">Remember Me</label>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Login</button>
+                <div id="loginError" class="error-message"></div>
+            </form>
+            <div class="login-footer">
+                <p>Developed & Designed By AMi (Prompt Eng)</p>
+            </div>
+        </div>
+    </div>
+    <audio id="loginAudio" src="HAC/2.mp3" autoplay preload="auto"></audio>
+    <audio id="loginKeyAudio" src="HAC/key.mp3" preload="auto"></audio>
+    <script src="script.js"></script>
+    <style>
+        .login-page { font-family: 'Share Tech Mono', 'Roboto Mono', monospace !important; }
+        .hac-login-bg { position: fixed; inset: 0; background:#000; overflow:hidden; }
+        .hac-login-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter: contrast(1.08) saturate(1.12); }
+        .hac-login-shade { position:absolute; inset:0; background: radial-gradient(circle at 50% 30%, rgba(0,255,136,0.16), rgba(0,0,0,0.86) 64%); }
+        .hac-login-noise { position:absolute; inset:0; opacity:0.10; mix-blend-mode: overlay;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E");
+            animation: hacNoise 0.18s steps(2,end) infinite;
+        }
+        @keyframes hacNoise { 0%,100%{transform:translate3d(0,0,0)} 50%{transform:translate3d(2px,-1px,0)} }
+
+        .hac-login-container { position: relative; z-index: 2; }
+        .hac-login-box {
+            border: 1px solid rgba(0,255,136,0.28);
+            background: rgba(0,0,0,0.58);
+            box-shadow: 0 0 55px rgba(0,255,136,0.14);
+            backdrop-filter: blur(7px);
+        }
+        .hac-title { letter-spacing: 3px; text-transform: uppercase; text-shadow: 0 0 16px rgba(0,255,136,0.35); }
+        .hac-sub { color: rgba(191,255,216,0.92) !important; letter-spacing: 1.2px; }
+        .hac-brand-top {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            animation: brandPop 0.5s ease-out, brandGlow 1.1s ease-in-out 0.5s infinite alternate;
+        }
+        .hac-brand-top img {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            box-shadow: 0 0 14px rgba(0,255,136,0.45);
+        }
+        .hac-brand-text {
+            font-weight: 700;
+            letter-spacing: 1.8px;
+            color: #d5ffe6;
+            text-shadow: 0 0 10px rgba(0,255,136,0.35);
+        }
+        @keyframes brandPop {
+            from { transform: scale(0.92) translateY(8px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        @keyframes brandGlow {
+            from { text-shadow: 0 0 8px rgba(0,255,136,0.2); }
+            to { text-shadow: 0 0 16px rgba(0,255,136,0.6); }
+        }
+        .login-page label { color: rgba(191,255,216,0.92); }
+        .login-page input {
+            background: rgba(0,0,0,0.55);
+            border: 1px solid rgba(0,255,136,0.22);
+            color: #d7ffe7;
+        }
+        .login-page input:focus {
+            outline: none;
+            border-color: rgba(0,255,136,0.55);
+            box-shadow: 0 0 0 3px rgba(0,255,136,0.12);
+        }
+    </style>
+    <script>
+        // Login functionality (configurable via Settings)
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            const errorDiv = document.getElementById('loginError');
+
+            const settings = JSON.parse(localStorage.getItem('settings') || '{}');
+            const expectedUser = settings.username || 'cp123';
+            const expectedPass = settings.passcode || '2005';
+
+            if (username === expectedUser && password === expectedPass) {
+                if (rememberMe) {
+                    localStorage.setItem('rememberedUser', username);
+                } else {
+                    localStorage.removeItem('rememberedUser');
+                }
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('hacLoginPassed', 'true');
+                window.location.href = 'access-granted.html';
+            } else {
+                errorDiv.textContent = 'Invalid username or passkey';
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        // Check if user is remembered
+        window.addEventListener('DOMContentLoaded', function () {
+            // Enforce stage order: show1/show2 must run before login page.
+            if (sessionStorage.getItem('hacBootDone') !== 'true') {
+                window.location.href = 'boot.html';
+                return;
+            }
+
+            // Try to keep background video running + unlock autoplay if needed
+            const v = document.getElementById('loginBgVideo');
+            const loginAudio = document.getElementById('loginAudio');
+            const keyAudio = document.getElementById('loginKeyAudio');
+            if (keyAudio) {
+                keyAudio.addEventListener('error', () => {
+                    // Fallback path if key.mp3 is under HAC/Music
+                    if (keyAudio.getAttribute('src') === 'HAC/key.mp3') keyAudio.setAttribute('src', 'HAC/Music/key.mp3');
+                }, { once: true });
+            }
+            if (v) {
+                try { v.play().catch(() => {}); } catch (_) {}
+                const unlock = () => {
+                    try { v.muted = false; v.muted = true; v.play().catch(() => {}); } catch (_) {}
+                    try { if (loginAudio) { loginAudio.volume = 1.0; loginAudio.play().catch(() => {}); } } catch (_) {}
+                };
+                window.addEventListener('pointerdown', unlock, { once: true });
+                window.addEventListener('keydown', unlock, { once: true });
+            }
+            try {
+                if (loginAudio) {
+                    loginAudio.volume = 1.0;
+                    loginAudio.play().catch(() => {});
+                }
+            } catch (_) {}
+
+            // Play key.mp3 only while typing in input boxes.
+            const playKey = (e) => {
+                if (!keyAudio) return;
+                const isTypingKey = e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete';
+                if (!isTypingKey) return;
+                try {
+                    keyAudio.volume = 1.0;
+                    keyAudio.currentTime = 0;
+                    keyAudio.play().catch(() => {});
+                } catch (_) {}
+            };
+            ['username', 'password'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('keydown', playKey);
+            });
+
+            const rememberedUser = localStorage.getItem('rememberedUser');
+            if (rememberedUser) {
+                document.getElementById('username').value = rememberedUser;
+                document.getElementById('rememberMe').checked = true;
+            }
+        });
+    </script>
+</body>
+
+</html>

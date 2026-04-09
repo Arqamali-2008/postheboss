@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="hacker">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HAC First Show</title>
+
+<style>
+body { margin:0; background:#000; overflow:hidden; }
+.stage { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; color:#9dffbe; font-family:monospace; }
+video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.overlay { position:relative; z-index:2; width:min(980px,92vw); padding:28px; border:1px solid rgba(0,255,136,.3); background:rgba(0,0,0,.5); box-shadow:0 0 40px rgba(0,255,136,.2);}
+.title { color:#d7ffe7; letter-spacing:3px; margin-bottom:10px;}
+.log { font-size:13px; white-space:pre-wrap;}
+.audio-hint {
+position:fixed;
+bottom:16px;
+left:50%;
+transform:translateX(-50%);
+padding:8px 12px;
+border:1px solid #00ff9c;
+background:#000;
+color:#dcffe9;
+display:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="stage">
+  <video autoplay muted loop src="HAC/1.mp4"></video>
+  <div class="overlay">
+    <div class="title">HAC :: Initializing</div>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<div class="audio-hint" id="audioHint">Click anywhere to start sound</div>
+
+<!-- AUDIO -->
+<audio id="a1" src="HAC/1.mp3" preload="auto"></audio>
+<audio id="a11" src="HAC/1.1.mp3" preload="auto"></audio>
+
+<script>
+const a1 = document.getElementById("a1");
+const a11 = document.getElementById("a11");
+const logEl = document.getElementById("log");
+const hint = document.getElementById("audioHint");
+
+let ctx, src1, src2, gain1, gain2;
+let started = false;
+let tNext;
+
+// detect file mode
+const isFile = location.protocol === "file:";
+
+// init advanced audio (only server)
+function initAudio() {
+  if (ctx || isFile) return;
+
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+  src1 = ctx.createMediaElementSource(a1);
+  src2 = ctx.createMediaElementSource(a11);
+
+  gain1 = ctx.createGain();
+  gain2 = ctx.createGain();
+
+  src1.connect(gain1).connect(ctx.destination);
+  src2.connect(gain2).connect(ctx.destination);
+
+  gain1.gain.value = 1.0;   // 1.mp3   → 100%
+  gain2.gain.value = 1.5;   // 1.1.mp3 → 150%
+}
+
+// start audio (dual mode)
+async function startAudio() {
+  if (started) return;
+  started = true;
+
+  // FILE MODE (no server)
+  // Note: HTML5 <audio> .volume is capped at 1.0 (100%).
+  // To get true 150% on 1.1.mp3, serve this page from a local server
+  // so the Web Audio API gain node path is used instead.
+  if (isFile) {
+    a1.currentTime = 0;
+    a11.currentTime = 0;
+
+    a1.volume = 1.0;   // 1.mp3   → 100%
+    a11.volume = 1.0;  // 1.1.mp3 → 100% (file:// cap; use server for true 150%)
+
+    a1.play().catch(()=>{});
+    a11.play().catch(()=>{});
+
+  } else {
+    // SERVER MODE — gain node allows >1.0 (true 150%)
+    initAudio();
+    await ctx.resume();
+
+    a1.currentTime = 0;
+    a11.currentTime = 0;
+
+    gain1.gain.value = 1.0;   // 1.mp3   → 100%
+    gain2.gain.value = 1.5;   // 1.1.mp3 → 150%
+
+    await Promise.all([
+      a1.play().catch(()=>{}),
+      a11.play().catch(()=>{})
+    ]);
+  }
+
+  hint.style.display = "none";
+
+  // redirect after 5 sec
+  tNext = setTimeout(() => {
+    goNext();
+  }, 5000);
+}
+
+function goNext() {
+  clearTimeout(tNext);
+  a1.pause();
+  a11.pause();
+  try {
+    // Mark first-show sequence as completed so boot.html does not loop back.
+    sessionStorage.setItem('hacFirstShowDone', 'true');
+  } catch (_) {}
+  // #region agent log
+  try {
+    const payload = {
+      sessionId: '3c05d1',
+      runId: 'pre-fix',
+      hypothesisId: 'H1',
+      location: 'first-show.html:goNext',
+      message: 'Attempting redirect to boot.html',
+      data: {
+        isFile: location.protocol === 'file:',
+        audioUnlocked: !!localStorage.getItem('audioUnlocked')
+      },
+      timestamp: Date.now()
+    };
+    fetch('http://127.0.0.1:7929/ingest/84521e1c-be37-4945-8616-6e9d7af141d9', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '3c05d1'
+      },
+      body: JSON.stringify(payload)
+    }).catch(() => {});
+  } catch (_) {}
+  // #endregion
+  window.location.href = "boot.html";
+}
+
+// Alt key skip
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Alt") {
+    e.preventDefault();
+    goNext();
+  }
+});
+
+// try autoplay
+function tryAutoStart() {
+  a1.play().then(()=> startAudio()).catch(()=>{
+    hint.style.display = "block";
+  });
+}
+
+// typing animation
+function typeLines(lines, ms) {
+  let i = 0;
+  const start = Date.now();
+  function tick() {
+    const elapsed = Date.now() - start;
+    const count = Math.floor((elapsed / ms) * lines.length);
+    while (i < count) {
+      logEl.textContent += lines[i++] + "\n";
+    }
+    if (elapsed < ms) requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+// INIT
+document.addEventListener("DOMContentLoaded", () => {
+
+  // #region agent log
+  try {
+    const payload = {
+      sessionId: '3c05d1',
+      runId: 'pre-fix',
+      hypothesisId: 'H2',
+      location: 'first-show.html:DOMContentLoaded',
+      message: 'first-show DOMContentLoaded',
+      data: {
+        isFile: location.protocol === 'file:',
+        audioUnlocked: !!localStorage.getItem('audioUnlocked')
+      },
+      timestamp: Date.now()
+    };
+    fetch('http://127.0.0.1:7929/ingest/84521e1c-be37-4945-8616-6e9d7af141d9', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '3c05d1'
+      },
+      body: JSON.stringify(payload)
+    }).catch(() => {});
+  } catch (_) {}
+  // #endregion
+
+  typeLines([
+    "[+] Establishing secure tunnel...",
+    "[+] Injecting boot payload...",
+    "[+] Verifying checksum...",
+    "[+] Bypassing gateway...",
+    "[+] Loading kernel hooks...",
+    "[+] SYSTEM: ONLINE"
+  ], 1500);
+
+  tryAutoStart();
+
+  // unlock system
+  ["click","touchstart","keydown"].forEach(evt => {
+    window.addEventListener(evt, () => {
+      localStorage.setItem("audioUnlocked","true");
+      startAudio();
+    }, { once:true });
+  });
+
+  // already unlocked
+  if(localStorage.getItem("audioUnlocked")){
+    startAudio();
+  } else {
+    hint.style.display = "block";
+  }
+
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMi POS - Product Management</title>
+    <script src="lock.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="icon.png">
+
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">AMi POS</div>
+            <ul class="nav-links">
+                <li><a href="index.html">POS</a></li>
+                <li><a href="sales.html">Sales</a></li>
+                <li><a href="employees.html">Employees</a></li>
+                <li><a href="products.html" class="active">Products</a></li>
+                <li><a href="customers.html">Customers</a></li>
+                <li><a href="reports.html">Reports</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="analysis.html">Analysis</a></li>
+                <li><a href="barcode.html">Barcode</a></li>
+                <li><a href="settings.html">Settings</a></li>
+                <li><a href="emp/index.html">EMS</a></li>
+            </ul>
+            <div class="nav-actions">
+                <input type="text" id="invoiceSearch" placeholder="Search Invoice (Ctrl+I)" class="btn-sm"
+                    style="padding: 8px 10px; border: 2px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);"
+                    onkeypress="handleInvoiceSearchKey(event)">
+                <select id="themeSelect" onchange="changeTheme(this.value)" class="btn-sm"
+                    style="padding: 5px; border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="black">Black</option>
+                    <option value="gray-black">Gray - Black</option>
+                    <option value="blue">Blue</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Product Management</h1>
+            <button class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="filters">
+            <div class="filter-group" style="flex: 1;">
+                <label>Search Products</label>
+                <input type="text" id="productSearch" placeholder="Search by code or name..."
+                    onkeyup="filterProducts()">
+            </div>
+            <div class="filter-group">
+                <label>Low Stock Alert</label>
+                <button class="btn btn-warning" onclick="showLowStock()">Show Low Stock</button>
+            </div>
+            <div class="filter-group">
+                <label>Barcode Print</label>
+                <button class="btn btn-success" onclick="openBarcodePrintModal()">Print Barcodes</button>
+            </div>
+        </div>
+
+        <!-- Products Table -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Products</h2>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Code</th>
+                            <th>Name</th>
+                            <th>Cost</th>
+                            <th>Price</th>
+                            <th>Category 1</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center">No products found</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="productModalTitle">Add Product</h2>
+                <button class="modal-close" onclick="closeProductModal()">&times;</button>
+            </div>
+            <form id="productForm" onsubmit="saveProduct(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodItemCode">Item Code *</label>
+                        <input type="text" id="prodItemCode" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="prodName">Name *</label>
+                        <input type="text" id="prodName" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodCost">Cost (Optional)</label>
+                        <input type="number" id="prodCost" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="prodPrice">Price *</label>
+                        <input type="number" id="prodPrice" step="0.01" min="0" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodStock">Stock (Optional)</label>
+                        <input type="number" id="prodStock" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="prodCompany">Company (Optional)</label>
+                        <div style="display:flex;">
+                            <select id="prodCompany" style="flex:1;"></select>
+                            <button type="button" class="btn btn-secondary btn-sm"
+                                onclick="openSupportModal('company')">+</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodCategory1">Category 1 *</label>
+                        <div style="display:flex;">
+                            <select id="prodCategory1" style="flex:1;" required></select>
+                            <button type="button" class="btn btn-secondary btn-sm"
+                                onclick="openSupportModal('category1')">+</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="prodCategory2">Category 2 *</label>
+                        <div style="display:flex;">
+                            <select id="prodCategory2" style="flex:1;" required></select>
+                            <button type="button" class="btn btn-secondary btn-sm"
+                                onclick="openSupportModal('category2')">+</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label for="prodDescription">Description (Optional)</label>
+                        <input type="text" id="prodDescription">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Barcode Print Modal -->
+    <div id="barcodePrintModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Print Barcodes</h2>
+                <button class="modal-close" onclick="closeBarcodePrintModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Select Products</label>
+                    <div
+                        style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; border-radius: 5px;">
+                        <div id="barcodeProductList">
+                            <!-- Products will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Print Format</label>
+                        <select id="barcodeFormat">
+                            <option value="receipt">Thermal Receipt (80mm)</option>
+                            <option value="50x30">Label 50x30mm</option>
+                            <option value="100x50">Label 100x50mm</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity per Product</label>
+                        <input type="number" id="barcodeQuantity" min="1" value="1">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeBarcodePrintModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="printSelectedBarcodes()">Print Selected</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supporting Data Modal -->
+    <div id="supportDataModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="supportDataTitle">Add Data</h2>
+                <button class="modal-close" onclick="closeSupportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="supportDataType">
+                <div class="form-group" id="supportGroupName">
+                    <label>Name *</label>
+                    <input type="text" id="supportName" required>
+                </div>
+                <div class="form-group" id="supportGroupLocation" style="display:none;">
+                    <label>Location</label>
+                    <input type="text" id="supportLocation">
+                </div>
+                <div class="form-group" id="supportGroupDesc">
+                    <label>Description</label>
+                    <input type="text" id="supportDesc">
+                </div>
+                <div class="form-group" id="supportGroupProducts" style="display:none;">
+                    <label>Products Provided</label>
+                    <input type="text" id="supportProducts">
+                </div>
+            </div>
+            <div class="form-actions" style="justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeSupportModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSupportData()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="app-footer">
+        <p>Developed & Designed By AMi (Prompt Eng)</p>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="barcode-printer.js"></script>
+    <script src="products.js"></script>
+    <script src="voice-control.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,2319 @@
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS The Boss - Point of Sale</title>
+  <script src="lock.js"></script>
+  <!-- QR / Barcode libs (used for receipt QR + Code128 barcode receipts) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="icon.png">
+
+  <style>
+    /* --- Splash Screen --- */
+    #splash {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 20% 20%, #0f2a18 0%, #060b08 45%, #020302 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      overflow: hidden;
+      animation: splashFadeIn 0.28s ease-out;
+    }
+
+    #splash .noise {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.12;
+      background-image:
+        radial-gradient(circle at 15% 30%, rgba(0, 255, 153, 0.35) 0 1px, transparent 2px),
+        radial-gradient(circle at 80% 60%, rgba(0, 255, 153, 0.25) 0 1px, transparent 2px),
+        radial-gradient(circle at 40% 85%, rgba(255, 255, 255, 0.2) 0 1px, transparent 2px);
+      background-size: 3px 3px, 4px 4px, 2px 2px;
+      animation: noiseShift 0.2s steps(2, end) infinite;
+    }
+
+    #splash .flash {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(circle, rgba(120, 255, 190, 0.35) 0%, rgba(120, 255, 190, 0) 55%);
+      opacity: 0;
+      animation: flashBurst 2.4s ease-out 0.05s 1;
+    }
+
+    #splash::before,
+    #splash::after {
+      content: '';
+      position: absolute;
+      width: 140vmax;
+      height: 140vmax;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0.22;
+      mix-blend-mode: multiply;
+      animation: splashPulse 1.25s ease-in-out infinite;
+    }
+
+    #splash::before {
+      background: radial-gradient(circle, rgba(34, 197, 94, 0.35) 0%, rgba(34, 197, 94, 0) 62%);
+      top: -70vmax;
+      left: -65vmax;
+    }
+
+    #splash::after {
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, rgba(16, 185, 129, 0) 60%);
+      bottom: -75vmax;
+      right: -65vmax;
+      animation-delay: 0.2s;
+    }
+
+    #splash .scanlines {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(120, 255, 170, 0.07) 0px,
+        rgba(120, 255, 170, 0.07) 1px,
+        rgba(0, 0, 0, 0) 3px,
+        rgba(0, 0, 0, 0) 4px
+      );
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 1;
+      animation: scanFlicker 0.12s steps(2, end) infinite;
+    }
+
+    #splash img {
+      width: 280px;
+      height: auto;
+      position: relative;
+      z-index: 2;
+      filter: drop-shadow(0 10px 24px rgba(0, 255, 120, 0.15));
+      animation: splashLogoBurst 1s cubic-bezier(0.2, 0.9, 0.2, 1), splashLogoFloat 1.2s ease-in-out 1s infinite alternate;
+    }
+
+    #splash h1 {
+      color: #7bffb2;
+      font-size: 3.25rem;
+      margin-top: 20px;
+      letter-spacing: 3px;
+      position: relative;
+      z-index: 2;
+      text-transform: uppercase;
+      text-shadow: 0 0 8px rgba(123, 255, 178, 0.6), 0 0 22px rgba(123, 255, 178, 0.25);
+      animation: splashTextIn 0.7s ease-out 0.15s both, splashGlow 0.9s ease-in-out 0.8s infinite alternate;
+    }
+
+    #splash h1::before,
+    #splash h1::after {
+      content: 'POS THE BOSS';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      pointer-events: none;
+    }
+
+    #splash h1::before {
+      color: rgba(0, 255, 180, 0.45);
+      transform: translate(1px, 0);
+      animation: glitchShift 0.45s infinite steps(2, end);
+    }
+
+    #splash h1::after {
+      color: rgba(110, 255, 140, 0.4);
+      transform: translate(-1px, 0);
+      animation: glitchShift 0.6s infinite steps(2, end) reverse;
+    }
+
+    #splash .hack-subtitle {
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: #9dffc8;
+      font-family: 'Roboto Mono', monospace;
+      letter-spacing: 1.5px;
+      position: relative;
+      z-index: 2;
+      opacity: 0;
+      animation: splashFooterIn 0.35s ease-out 0.5s forwards;
+    }
+
+    #splash .hack-boot {
+      margin-top: 12px;
+      font-size: 0.78rem;
+      color: #7cf4a6;
+      font-family: 'Roboto Mono', monospace;
+      letter-spacing: 1px;
+      position: relative;
+      z-index: 2;
+      opacity: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      width: 0;
+      border-right: 2px solid rgba(124, 244, 166, 0.7);
+      animation: typeBoot 1.2s steps(34, end) 0.55s forwards, caretBlink 0.5s steps(1, end) infinite;
+    }
+
+    #splash .footer {
+      position: absolute;
+      bottom: 20px;
+      color: #79e9aa;
+      font-size: 0.92rem;
+      z-index: 2;
+      letter-spacing: 0.4px;
+      animation: splashFooterIn 0.55s ease-out 0.35s both;
+    }
+
+    @keyframes splashFadeIn {
+      from { opacity: 0; transform: scale(1.03); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes noiseShift {
+      0% { transform: translate(0, 0); }
+      25% { transform: translate(1px, -1px); }
+      50% { transform: translate(-1px, 1px); }
+      75% { transform: translate(1px, 1px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    @keyframes flashBurst {
+      0% { opacity: 0; }
+      6% { opacity: 0.55; }
+      16% { opacity: 0.08; }
+      28% { opacity: 0.35; }
+      45% { opacity: 0.06; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes splashPulse {
+      0% { transform: scale(0.92) rotate(0deg); opacity: 0.18; }
+      50% { transform: scale(1.02) rotate(4deg); opacity: 0.28; }
+      100% { transform: scale(0.95) rotate(-3deg); opacity: 0.2; }
+    }
+
+    @keyframes scanFlicker {
+      0%, 100% { opacity: 0.42; }
+      50% { opacity: 0.3; }
+    }
+
+    @keyframes splashLogoBurst {
+      0% { transform: scale(0.68) rotate(-8deg); opacity: 0; }
+      55% { transform: scale(1.08) rotate(2deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    @keyframes splashLogoFloat {
+      from { transform: translateY(0); }
+      to { transform: translateY(-4px); }
+    }
+
+    @keyframes splashTextIn {
+      0% { opacity: 0; transform: translateY(18px) scale(0.96); letter-spacing: 7px; }
+      100% { opacity: 1; transform: translateY(0) scale(1); letter-spacing: 3px; }
+    }
+
+    @keyframes splashGlow {
+      from { text-shadow: 0 3px 10px rgba(0, 0, 0, 0.12); }
+      to { text-shadow: 0 0 12px rgba(123, 255, 178, 0.8), 0 0 28px rgba(123, 255, 178, 0.35); }
+    }
+
+    @keyframes glitchShift {
+      0% { transform: translate(0, 0); opacity: 0.6; }
+      20% { transform: translate(-2px, 1px); opacity: 0.3; }
+      40% { transform: translate(1px, -1px); opacity: 0.65; }
+      60% { transform: translate(2px, 1px); opacity: 0.25; }
+      80% { transform: translate(-1px, 0); opacity: 0.5; }
+      100% { transform: translate(0, 0); opacity: 0.55; }
+    }
+
+    @keyframes splashFooterIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes typeBoot {
+      0% { opacity: 1; width: 0; }
+      100% { opacity: 1; width: 27ch; }
+    }
+
+    @keyframes caretBlink {
+      0%, 49% { border-right-color: rgba(124, 244, 166, 0.7); }
+      50%, 100% { border-right-color: transparent; }
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; transform: scale(1); filter: blur(0); }
+      to { opacity: 0; transform: scale(1.03); filter: blur(2px); }
+    }
+
+    /* Hide main app until splash ends */
+    #main-content {
+      display: none;
+    }
+
+    /* ====================================================== */
+    /* 🎨 THRILLING BUTTON & UI ANIMATIONS                    */
+    /* ====================================================== */
+
+    /* --- Button Hover Glow & Lift --- */
+    .btn {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.5s ease, height 0.5s ease;
+    }
+
+    .btn:hover::after {
+      width: 300px;
+      height: 300px;
+    }
+
+    .btn:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+    }
+
+    .btn:active {
+      transform: translateY(0px) scale(0.97) !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+      transition: all 0.1s !important;
+    }
+
+    /* --- Card Hover Animations --- */
+    .card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    /* --- Stat Card Shine Effect --- */
+    .stat-card {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%);
+      transform: rotate(45deg);
+      transition: all 0.6s;
+    }
+
+    .stat-card:hover::before {
+      left: 100%;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+    }
+
+    /* --- Nav Link Animations --- */
+    .nav-links a {
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    }
+
+    .nav-links a::before {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      width: 0;
+      height: 2px;
+      background: var(--accent-primary);
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+
+    .nav-links a:hover::before {
+      width: 80%;
+    }
+
+    .nav-links a:hover {
+      transform: translateY(-2px);
+    }
+
+    /* --- Bill Item Row Animation --- */
+    .bill-item {
+      transition: all 0.3s ease;
+    }
+
+    .bill-item:hover {
+      background: var(--bg-tertiary);
+      transform: scale(1.005);
+    }
+
+    /* --- Modal Entrance Animation --- */
+    .modal.active .modal-content {
+      animation: modalBounceIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes modalBounceIn {
+      0% {
+        transform: scale(0.3) translateY(40px);
+        opacity: 0;
+      }
+
+      50% {
+        transform: scale(1.05);
+      }
+
+      70% {
+        transform: scale(0.95);
+      }
+
+      100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    /* --- Payment Option Pulse --- */
+    .payment-option {
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    }
+
+    .payment-option:hover {
+      transform: scale(1.08);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .payment-option.selected {
+      animation: selectedPulse 0.5s ease;
+    }
+
+    @keyframes selectedPulse {
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.1);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    /* --- Input Focus Glow --- */
+    input:focus,
+    select:focus {
+      box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.2) !important;
+      transition: box-shadow 0.3s ease !important;
+    }
+
+    /* --- Suggestion Dropdown Items --- */
+    .suggestion-item {
+      transition: all 0.2s ease;
+    }
+
+    .suggestion-item:hover {
+      transform: translateX(5px);
+      background: var(--accent-primary) !important;
+      color: white !important;
+    }
+
+    /* ====================================================== */
+    /* 🖨️ PRINT QUEUE UI STYLES                               */
+    /* ====================================================== */
+
+    /* Print in Server Button - Special Gradient */
+    .btn-print-server {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+      color: white;
+      border: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-print-server::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% {
+        left: -100%;
+      }
+
+      100% {
+        left: 100%;
+      }
+    }
+
+    .btn-print-server:hover {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed, #9333ea);
+    }
+
+    /* Print Queue Badge */
+    .pq-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: #ef4444;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: badgePulse 2s infinite;
+    }
+
+    @keyframes badgePulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.2);
+      }
+    }
+
+    /* Print Queue Panel */
+    .print-queue-panel {
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .print-queue-panel:hover {
+      border-color: var(--accent-primary);
+    }
+
+    .pq-header {
+      background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .pq-header h3 {
+      margin: 0;
+      font-size: 1em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Print Queue Item */
+    .print-queue-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+
+    .print-queue-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .print-queue-item:last-child {
+      border-bottom: none;
+    }
+
+    .pq-info {
+      flex: 1;
+    }
+
+    .pq-invoice {
+      font-weight: 700;
+      font-size: 0.95em;
+      margin-bottom: 2px;
+    }
+
+    .pq-meta {
+      font-size: 0.8em;
+      color: var(--text-secondary);
+      display: flex;
+      gap: 12px;
+    }
+
+    .pq-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .pq-btn-print {
+      animation: gentlePulse 2s infinite;
+    }
+
+    @keyframes gentlePulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.4);
+      }
+
+      50% {
+        box-shadow: 0 0 0 6px rgba(39, 174, 96, 0);
+      }
+    }
+
+    /* Server Mode Toggle */
+    .server-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: var(--bg-tertiary);
+      border-top: 1px solid var(--border-color);
+    }
+
+    .server-toggle label {
+      font-size: 0.85em;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--border-color);
+      border-radius: 24px;
+      transition: 0.3s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    .toggle-switch input:checked+.toggle-slider {
+      background: var(--accent-success);
+    }
+
+    .toggle-switch input:checked+.toggle-slider::before {
+      transform: translateX(20px);
+    }
+
+    /* Server Badge */
+    .server-badge {
+      font-size: 0.8em;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .server-badge.listening {
+      background: rgba(39, 174, 96, 0.15);
+      color: var(--accent-success);
+    }
+
+    .server-badge.connecting {
+      background: rgba(243, 156, 18, 0.15);
+      color: var(--accent-warning);
+    }
+
+    .server-badge.off {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+    }
+
+    /* Device Name */
+    .device-info {
+      padding: 8px 16px;
+      font-size: 0.8em;
+      color: var(--text-secondary);
+      border-top: 1px solid var(--border-color);
+    }
+
+    /* ====================================================== */
+    /* 🔔 NOTIFICATION STYLES                                 */
+    /* ====================================================== */
+
+    /* Print Notification (floating) */
+    .print-notification {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background: var(--bg-secondary);
+      border: 2px solid var(--accent-success);
+      border-radius: 16px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+      z-index: 9000;
+      max-width: 400px;
+      backdrop-filter: blur(12px);
+    }
+
+    .pn-icon {
+      font-size: 2em;
+    }
+
+    .pn-content {
+      flex: 1;
+    }
+
+    .pn-title {
+      font-weight: 700;
+      font-size: 1em;
+      margin-bottom: 2px;
+    }
+
+    .pn-detail {
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+
+    .pn-actions {
+      display: flex;
+      gap: 6px;
+      flex-direction: column;
+    }
+
+    /* Toast Notification */
+    .pos-toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95em;
+      z-index: 9999;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    .pos-toast-success {
+      background: linear-gradient(135deg, #27ae60, #2ecc71);
+      color: white;
+    }
+
+    .pos-toast-error {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: white;
+    }
+
+    .pos-toast-info {
+      background: linear-gradient(135deg, #3498db, #2980b9);
+      color: white;
+    }
+
+    /* ====================================================== */
+    /* 🎬 KEYFRAME ANIMATIONS                                 */
+    /* ====================================================== */
+
+    @keyframes animate-slide-in {
+      from {
+        transform: translateX(30px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .animate-slide-in {
+      animation: animate-slide-in 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    @keyframes animate-slide-up {
+      from {
+        transform: translate(-50%, 30px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
+    }
+
+    .animate-slide-up {
+      animation: animate-slide-up 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    @keyframes animate-bounce-in {
+      0% {
+        transform: scale(0.3) translateY(-20px);
+        opacity: 0;
+      }
+
+      50% {
+        transform: scale(1.05);
+        opacity: 1;
+      }
+
+      70% {
+        transform: scale(0.95);
+      }
+
+      100% {
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .animate-bounce-in {
+      animation: animate-bounce-in 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    @keyframes animate-fade-out {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      to {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+    }
+
+    .animate-fade-out {
+      animation: animate-fade-out 0.4s ease forwards;
+    }
+
+    /* --- Page Load Stagger Animation --- */
+    .pos-container {
+      animation: fadeIn 0.6s ease;
+    }
+
+    .pos-sidebar .card:nth-child(1) {
+      animation: animate-slide-in 0.4s ease 0.1s both;
+    }
+
+    .pos-sidebar .card:nth-child(2) {
+      animation: animate-slide-in 0.4s ease 0.2s both;
+    }
+
+    .pos-sidebar .card:nth-child(3) {
+      animation: animate-slide-in 0.4s ease 0.3s both;
+    }
+
+    .pos-sidebar .card:nth-child(4) {
+      animation: animate-slide-in 0.4s ease 0.4s both;
+    }
+
+    /* ====================================================== */
+    /* 📱 MOBILE RESPONSIVE LAYOUT                            */
+    /* ====================================================== */
+
+    /* ---- Tablet (max 1024px) ---- */
+    @media (max-width: 1024px) {
+      .pos-container {
+        grid-template-columns: 1fr !important;
+      }
+
+      .pos-sidebar {
+        order: -1;
+      }
+    }
+
+    /* ---- Mobile-friendly (max 768px) ---- */
+    @media (max-width: 768px) {
+
+      /* Navbar: horizontal scrollable links */
+      .nav-container {
+        flex-direction: column;
+        gap: 8px;
+        padding: 0 10px;
+      }
+
+      .nav-links {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 4px;
+        padding: 4px 0;
+        width: 100%;
+        scrollbar-width: none;
+      }
+
+      .nav-links::-webkit-scrollbar {
+        display: none;
+      }
+
+      .nav-links li {
+        flex-shrink: 0;
+      }
+
+      .nav-links a {
+        padding: 6px 12px;
+        font-size: 0.85em;
+        white-space: nowrap;
+        border-radius: 20px;
+      }
+
+      .nav-logo {
+        font-size: 1.2em;
+      }
+
+      .nav-actions {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: center;
+      }
+
+      .nav-actions input[type="text"] {
+        flex: 1;
+        min-width: 120px;
+      }
+
+      .nav-actions select {
+        flex: 0 0 auto;
+      }
+
+      /* Page Header: stack title & buttons */
+      .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+
+      .page-header>div {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px !important;
+      }
+
+      .page-header .btn {
+        font-size: 0.78em;
+        padding: 8px 4px;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .page-header .btn-print-server {
+        font-size: 0.75em;
+        padding: 8px 4px;
+      }
+
+      .page-title {
+        font-size: 1.4em;
+      }
+
+      /* Card header: stack on mobile */
+      .card-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+
+      .card-header>div {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .card-header select,
+      .card-header input {
+        width: 100%;
+      }
+
+      #customerSelect {
+        min-width: 0 !important;
+        width: 100% !important;
+      }
+
+      /* Item input group: 2-column grid for small fields */
+      .item-input-group {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        flex-direction: unset;
+      }
+
+      .item-input-group>div:first-child {
+        grid-column: 1 / -1;
+      }
+
+      .item-input-group input[id="itemName"] {
+        grid-column: 1 / -1;
+      }
+
+      .item-input-group select[id="itemSalesCode"] {
+        grid-column: 1 / -1;
+      }
+
+      .item-input-group .btn {
+        grid-column: 1 / -1;
+      }
+
+      .item-input-group input,
+      .item-input-group select {
+        width: 100%;
+        padding: 12px 10px;
+        font-size: 1em;
+      }
+
+      /* Bill items: card-style on mobile, hide header */
+      .bill-item-header {
+        display: none !important;
+      }
+
+      .bill-items {
+        max-height: none;
+        min-height: auto;
+      }
+
+      .bill-item {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 8px;
+        background: var(--bg-tertiary);
+        align-items: center;
+      }
+
+      .bill-item>div:nth-child(1) {
+        width: 28px;
+        font-weight: 700;
+        color: var(--accent-primary);
+      }
+
+      .bill-item>div:nth-child(2) {
+        flex: 1;
+        font-weight: 600;
+        min-width: 100px;
+      }
+
+      .bill-item>div:nth-child(3) {
+        font-size: 0.8em;
+        color: var(--text-secondary);
+      }
+
+      .bill-item>div:nth-child(4) input,
+      .bill-item>div:nth-child(5) input {
+        width: 60px;
+        padding: 6px;
+        font-size: 0.9em;
+      }
+
+      .bill-item>div:nth-child(8) {
+        font-weight: 700;
+        font-size: 1.05em;
+        color: var(--accent-primary);
+        margin-left: auto;
+      }
+
+      .bill-item>div:nth-child(9) {
+        width: 32px;
+      }
+
+      .bill-item>div:nth-child(9) .btn {
+        padding: 4px 8px;
+        font-size: 1.1em;
+      }
+
+      /* Summary */
+      .bill-summary {
+        padding: 12px;
+      }
+
+      .summary-value input {
+        width: 80px !important;
+      }
+
+      /* Sidebar */
+      .pos-sidebar {
+        order: 2;
+      }
+
+      /* Print Queue panel */
+      .print-queue-panel {
+        margin-bottom: 15px;
+      }
+
+      .server-toggle {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .print-notification {
+        top: auto;
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .pn-actions {
+        flex-direction: row;
+        justify-content: center;
+      }
+
+      /* Modals */
+      .modal-content {
+        width: calc(100% - 16px) !important;
+        max-width: 100% !important;
+        margin: 8px;
+        padding: 16px;
+        max-height: calc(100vh - 20px);
+      }
+
+      .payment-options {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .form-row {
+        grid-template-columns: 1fr !important;
+      }
+
+      /* Toast: narrower */
+      .pos-toast {
+        left: 10px;
+        right: 10px;
+        transform: none;
+        text-align: center;
+      }
+    }
+
+    /* ---- Small phones (max 480px) ---- */
+    @media (max-width: 480px) {
+      .container {
+        padding: 8px 6px;
+      }
+
+      .page-title {
+        font-size: 1.2em;
+      }
+
+      .page-header>div {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+
+      .card {
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+
+      .card-title {
+        font-size: 1.1em;
+      }
+
+      .navbar {
+        padding: 8px 0;
+      }
+
+      .nav-links a {
+        padding: 5px 10px;
+        font-size: 0.8em;
+      }
+
+      .item-input-group {
+        grid-template-columns: 1fr !important;
+      }
+
+      .bill-item>div:nth-child(4) input,
+      .bill-item>div:nth-child(5) input {
+        width: 50px;
+      }
+
+      .payment-options {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .pq-header {
+        padding: 10px;
+      }
+
+      .pq-header h3 {
+        font-size: 0.9em;
+      }
+
+      .print-queue-item {
+        padding: 10px;
+      }
+
+      .pq-actions {
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .device-info {
+        font-size: 0.75em;
+        padding: 6px 10px;
+      }
+
+      .btn {
+        font-size: 0.9em;
+        padding: 8px 12px;
+      }
+
+      .btn-sm {
+        font-size: 0.8em;
+        padding: 5px 8px;
+      }
+
+      #splash h1 {
+        font-size: 2rem;
+      }
+
+      #splash img {
+        width: 180px;
+      }
+    }
+
+    /* ---- Very small (max 360px) ---- */
+    @media (max-width: 360px) {
+      .page-header>div {
+        grid-template-columns: 1fr !important;
+      }
+
+      .nav-links a {
+        font-size: 0.75em;
+        padding: 4px 8px;
+      }
+
+      .item-input-group input,
+      .item-input-group select {
+        font-size: 0.9em;
+        padding: 10px 8px;
+      }
+    }
+
+    /* Index-only hacker refinements requested */
+    [data-theme="hacker"] #main-content .btn {
+      background: #ffffff !important;
+      color: #000000 !important;
+      border: 1px solid #ffffff !important;
+      text-shadow: none !important;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.3), 0 4px 10px rgba(0,0,0,0.2) !important;
+    }
+    [data-theme="hacker"] #main-content .btn:hover {
+      filter: brightness(0.95);
+      transform: translateY(-1px);
+    }
+    [data-theme="hacker"] #main-content,
+    [data-theme="hacker"] #main-content .card-title,
+    [data-theme="hacker"] #main-content .summary-label,
+    [data-theme="hacker"] #main-content .summary-value,
+    [data-theme="hacker"] #main-content label,
+    [data-theme="hacker"] #main-content h1,
+    [data-theme="hacker"] #main-content h2,
+    [data-theme="hacker"] #main-content h3,
+    [data-theme="hacker"] #main-content p,
+    [data-theme="hacker"] #main-content small,
+    [data-theme="hacker"] #main-content span,
+    [data-theme="hacker"] #main-content div,
+    [data-theme="hacker"] #main-content th,
+    [data-theme="hacker"] #main-content td,
+    [data-theme="hacker"] #main-content input,
+    [data-theme="hacker"] #main-content select,
+    [data-theme="hacker"] #main-content textarea {
+      color: #ffffff !important;
+    }
+    [data-theme="hacker"] .bill-item.hacker-typed {
+      overflow: hidden;
+      border-left: 2px solid rgba(0, 255, 136, 0.45);
+      animation:
+        fadeIn 0.25s ease-out,
+        billTypingReveal 0.42s steps(20, end) 1,
+        billCaretBlink 0.6s steps(1, end) 2;
+    }
+    @keyframes billTypingReveal {
+      from { clip-path: inset(0 100% 0 0); }
+      to { clip-path: inset(0 0 0 0); }
+    }
+    @keyframes billCaretBlink {
+      0%,49% { border-left-color: rgba(0,255,136,0.95); }
+      50%,100% { border-left-color: rgba(0,255,136,0.1); }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Splash Screen -->
+  <div id="splash">
+    <div class="noise"></div>
+    <div class="flash"></div>
+    <div class="scanlines"></div>
+   
+    <img src="icon.png" alt="Boss Logo">
+    <h1>POS The Boss</h1>
+    <div class="hack-subtitle">Initializing secure terminal...</div>
+    <div class="hack-boot">ACCESSING CORE MATRIX... OK</div>
+    <div class="hack-subtitle" style="margin-top:6px; font-size:0.78rem; opacity:0.85;">Press <strong>Alt</strong> to skip</div>
+    <div class="footer">Developed & Designed By AMi (Prompt Eng)</div>
+  </div>
+  <audio id="indexThemeMusic" preload="auto" loop></audio>
+
+  <!-- Main Content -->
+  <div id="main-content">
+    <!-- Your Original POS HTML -->
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <div class="nav-logo">AMi POS</div>
+        <ul class="nav-links">
+          <li><a href="index.html" class="active">POS</a></li>
+          <li><a href="sales.html">Sales</a></li>
+          <li><a href="employees.html">Employees</a></li>
+          <li><a href="products.html">Products</a></li>
+          <li><a href="customers.html">Customers</a></li>
+          <li><a href="reports.html">Reports</a></li>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li><a href="analysis.html">Analysis</a></li>
+          <li><a href="barcode.html">Barcode</a></li>
+          <li><a href="settings.html">Settings</a></li>
+          <li><a href="emp/index.html">EMS</a></li>
+        </ul>
+        <div class="nav-actions">
+          <input type="text" id="invoiceSearch" placeholder="Search Invoice (Ctrl+I)" class="btn-sm"
+            style="padding: 8px 10px; border: 2px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);"
+            onkeydown="handleInvoiceSearchKey(event)">
+          <!-- Universal scanner: single field for QR/barcode/invoice-json -->
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="text" id="universalScannerInput"
+              placeholder="Scan invoice/QR/barcode then ENTER"
+              class="btn-sm"
+              style="padding: 8px 10px; border: 2px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary); min-width: 320px;"
+              onkeydown="if(event.key==='Enter'){ /* handled in universal-scanner (capture) */ }">
+            <button class="btn btn-secondary btn-sm" id="universalCameraBtn" type="button" title="Webcam QR scanner">
+              📷
+            </button>
+          </div>
+          <select id="themeSelect" onchange="changeTheme(this.value)" class="btn-sm"
+            style="padding: 5px; border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="black">Black</option>
+            <option value="gray-black">Gray - Black</option>
+            <option value="blue">Blue</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" id="posMusicToggleBtn" type="button" title="Music Player">
+            🎵
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="exportBackup()" title="Backup Data">Backup</button>
+          <button class="btn btn-secondary btn-sm" onclick="logout()">Logout</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+      <div class="page-header">
+        <h1 class="page-title">Point of Sale</h1>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-warning" onclick="holdCurrentBill()" title="Hold current bill">Hold Bill</button>
+          <button class="btn btn-info" onclick="openHoldBillsModal()" title="Resume a held bill">Resume Bill</button>
+          <button class="btn btn-primary" onclick="newBill()" title="Ctrl + F1">New Bill</button>
+          <button class="btn btn-success" onclick="openPaymentModal()" title="Ctrl + F2">Payment</button>
+          <button class="btn btn-warning" onclick="printReceipt()" title="Ctrl + F5">Print Receipt</button>
+          <div style="position: relative; display: inline-block;">
+            <button class="btn btn-print-server" onclick="sendToServerPrint()" title="Send receipt to server printer">
+              🖨️ Print in Server
+            </button>
+            <span id="printQueueBadge" class="pq-badge" style="display:none;">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pos-container">
+        <div class="pos-main">
+          <div class="card" id="receiptScanPanel">
+            <div class="card-header">
+              <h2 class="card-title">Receipt Scanner (QR / Barcode / JSON)</h2>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <input
+                type="text"
+                id="receiptScanInput"
+                placeholder='Scan receipt QR JSON or barcode invoice, then press ENTER'
+                style="flex:1; min-width:320px; padding:12px; border:2px solid var(--border-color); border-radius:8px; background:var(--bg-secondary); color:var(--text-primary);"
+                onkeydown="handleReceiptScanEnter(event)"
+              >
+              <button class="btn btn-primary" onclick="processReceiptScanInput()">Process</button>
+              <button class="btn btn-secondary" onclick="document.getElementById('receiptScanInput').value=''; document.getElementById('receiptScanInput').focus();">Clear</button>
+            </div>
+            <small style="color: var(--text-secondary); display:block; margin-top:8px;">
+              Supports: compact invoice JSON (`t,n,d,s,l,ttl,pd,bal,pt`) or invoice ID (`INV-xxxx`, `SD1-INV-xxxx`).
+            </small>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Invoice #<span id="invoiceNumber">INV-00036</span></h2>
+              <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div>
+                  <label>Sales Code:</label>
+                  <select id="salesCode" onchange="updateSalesCode()" onkeydown="handleInputEnter(event, 'itemCode')">
+                    <option value="">Select Employee</option>
+                    <option value="EMP-01">EMP-01 - AMi</option>
+                    <option value="EMP-02">EMP-02 - Zara</option>
+                    <option value="EMP001">EMP001 - John Smith</option>
+                    <option value="EMP002">EMP002 - Sarah Johnson</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Customer:</label>
+                  <div style="display: flex; gap: 5px;">
+                    <select id="customerSelect" onchange="updateCustomer()" style="min-width: 200px;">
+                      <option value="">Walk-in Customer</option>
+                    </select>
+                    <button class="btn btn-secondary btn-sm" onclick="openCustomerSelectModal()"
+                      title="Add/Select Customer">+</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Add Item Form -->
+            <div class="item-input-group">
+              <div style="position: relative; flex: 1;">
+                <input type="text" id="itemCode" placeholder="Item Code / Search Name" style="width: 100%;"
+                  onkeydown="handleItemInputKeyDown(event)" onkeyup="handleItemCodeSearch(event)" autocomplete="off">
+                <div id="productSuggestions" class="suggestions-dropdown"></div>
+              </div>
+              <input type="text" id="itemName" placeholder="Item Name" readonly>
+              <input type="number" id="itemQty" placeholder="Qty" min="0" step="0.01" value="1"
+                onkeydown="handleInputEnter(event, 'itemPrice')">
+              <input type="number" id="itemPrice" placeholder="Price" step="0.01"
+                onkeydown="handleInputEnter(event, 'itemDiscount')">
+              <input type="text" id="itemDiscount" placeholder="Disc" onkeydown="handleInputEnter(event, 'addItemBtn')">
+              <select id="itemSalesCode" onkeydown="handleInputEnter(event, 'addItemBtn')">
+                <option value="">Bill Default</option>
+                <option value="EMP-01">EMP-01 - AMi</option>
+                <option value="EMP-02">EMP-02 - Zara</option>
+                <option value="EMP001">EMP001 - John Smith</option>
+                <option value="EMP002">EMP002 - Sarah Johnson</option>
+              </select>
+              <button class="btn btn-primary" id="addItemBtn" onclick="addItemToBill()"
+                onkeydown="handleAddButtonEnter(event)">Add</button>
+            </div>
+
+            <!-- Bill Items -->
+            <div class="bill-items">
+              <div class="bill-item bill-item-header">
+                <div>#</div>
+                <div>Item</div>
+                <div>Code</div>
+                <div>Qty</div>
+                <div>Price</div>
+                <div>Disc</div>
+                <div>SC</div>
+                <div>Total</div>
+                <div></div>
+              </div>
+              <div id="billItemsList"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="pos-sidebar">
+          <div class="card">
+            <h2 class="card-title">Bill Summary</h2>
+            <div class="bill-summary">
+              <div class="summary-row">
+                <span class="summary-label">Subtotal:</span>
+                <span class="summary-value" id="subtotal">LKR 0.00</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Discount:</span>
+                <span class="summary-value">
+                  <input type="number" id="discount" placeholder="0" min="0" step="0.01"
+                    style="width: 100px; text-align: right;" onchange="calculateTotal()" onkeyup="calculateTotal()">
+                </span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Total:</span>
+                <span class="summary-value" id="total">LKR 0.00</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Paid:</span>
+                <span class="summary-value" id="paidAmount">LKR 0.00</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Balance:</span>
+                <span class="summary-value" id="balance">LKR 0.00</span>
+              </div>
+            </div>
+            <div style="margin-top: 20px;">
+              <button class="btn btn-success btn-block btn-lg" onclick="openPaymentModal()">Process Payment</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Recent Items</h3>
+            <div id="recentItems">
+              <p style="text-align: center; color: var(--text-secondary);">No recent items</p>
+            </div>
+          </div>
+          <div class="card">
+            <h3 class="card-title">Recent Invoices</h3>
+            <div id="recentInvoices">
+              <p style="text-align:center; color: var(--text-secondary);">No recent invoices</p>
+            </div>
+          </div>
+
+          <!-- Server Print Queue (auto-enabled when DB connected) -->
+          <div class="card print-queue-panel">
+            <div class="pq-header">
+              <h3>🖨️ Server Print Queue</h3>
+              <span id="serverModeStatus"><span class="server-badge off">⚪ Server mode off</span></span>
+            </div>
+            <div id="printQueueList">
+              <div style="text-align:center; padding: 30px 15px; color: var(--text-secondary);">
+                <div style="font-size: 2.5em; margin-bottom: 10px; opacity: 0.5;">🖨️</div>
+                <p>No pending print jobs</p>
+              </div>
+            </div>
+            <div class="device-info">
+              Device: <strong id="deviceNameDisplay">Loading...</strong>
+              <button class="btn btn-secondary btn-sm" onclick="renameDevice()"
+                style="margin-left:8px; padding: 2px 8px; font-size: 0.8em;">Rename</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal">
+      <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+          <h2 class="modal-title">Payment</h2>
+          <button class="modal-close" onclick="closePaymentModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Payment Type</label>
+            <div class="payment-options">
+              <div class="payment-option" data-type="cash" onclick="selectPaymentType('cash')">
+                💵 Cash
+              </div>
+              <div class="payment-option" data-type="cheque" onclick="selectPaymentType('cheque')">
+                📄 Cheque
+              </div>
+              <div class="payment-option" data-type="card" onclick="selectPaymentType('card')">
+                💳 Card
+              </div>
+              <div class="payment-option" data-type="digital" onclick="selectPaymentType('digital')">
+                📱 Digital Pay
+              </div>
+              <div class="payment-option" data-type="other" onclick="selectPaymentType('other')">
+                📝 Other
+              </div>
+            </div>
+            <div class="form-group" id="otherPaymentTypeGroup" style="display: none; margin-top: 10px;">
+              <label for="otherPaymentType">Specify Payment Type</label>
+              <input type="text" id="otherPaymentType" placeholder="Enter payment type">
+            </div>
+          </div>
+
+          <div class="form-group" id="amountReceivedGroup">
+            <label for="amountReceived">Pay Amount</label>
+            <input type="number" id="amountReceived" step="0.01" min="0" onchange="calculatePaymentBalance()"
+              onkeyup="calculatePaymentBalance()" placeholder="0.00"
+              onkeydown="handleInputEnter(event, 'paymentCustomerName')">
+          </div>
+
+          <div class="form-group" id="chequeDetailsGroup" style="display: none;">
+            <label for="chequeNumber">Cheque Number</label>
+            <input type="text" id="chequeNumber" placeholder="Enter cheque number">
+            <label for="chequeDate" style="margin-top: 10px; display: block;">Cheque Date</label>
+            <input type="date" id="chequeDate">
+          </div>
+
+          <div class="form-group">
+            <label for="paymentCustomerName">Customer Name (Optional)</label>
+            <input type="text" id="paymentCustomerName" placeholder="Enter customer name"
+              onkeydown="handleInputEnter(event, 'paymentCustomerMobile')">
+          </div>
+
+          <div class="form-group">
+            <label for="paymentCustomerMobile">Customer Mobile (Optional)</label>
+            <input type="text" id="paymentCustomerMobile" placeholder="07XXXXXXXX"
+              onkeydown="handleInputEnter(event, 'paymentCustomerEmail')">
+          </div>
+
+          <div class="form-group">
+            <label for="paymentCustomerEmail">Customer Email (Optional)</label>
+            <input type="email" id="paymentCustomerEmail" placeholder="customer@example.com"
+              onkeydown="handleInputEnter(event, 'confirmPaymentBtn')">
+          </div>
+
+          <div class="summary-row"
+            style="margin-top: 20px; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <span class="summary-label"><strong>Total Amount:</strong></span>
+              <span class="summary-value" id="paymentTotalAmount" style="font-weight: bold;">LKR 0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <span class="summary-label">Paid Amount:</span>
+              <span class="summary-value" id="paymentPaidAmount">LKR 0.00</span>
+            </div>
+            <div id="paymentBalanceRow" style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <span class="summary-label">Balance:</span>
+              <span class="summary-value" id="paymentBalance" style="color: var(--accent-success);">LKR 0.00</span>
+            </div>
+            <div id="paymentLoanRow"
+              style="display: none; justify-content: space-between; padding-top: 10px; border-top: 2px solid var(--border-color);">
+              <span class="summary-label" style="color: var(--accent-danger);"><strong>Loan Amount:</strong></span>
+              <span class="summary-value" id="paymentLoanAmount"
+                style="color: var(--accent-danger); font-weight: bold;">LKR 0.00</span>
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button class="btn btn-secondary" onclick="closePaymentModal()">Close</button>
+            <button class="btn btn-success" id="confirmPaymentBtn" onclick="confirmPayment()">Confirm Payment</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loan Details Modal -->
+    <div id="loanModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Loan Details</h2>
+          <button class="modal-close" onclick="closeLoanModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="customerName">Customer Name</label>
+              <input type="text" id="customerName" placeholder="Enter customer name">
+            </div>
+            <div class="form-group">
+              <label for="customerContact">Contact Number</label>
+              <input type="text" id="customerContact" placeholder="07XXXXXXXX">
+            </div>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Loan Amount:</span>
+            <span class="summary-value" id="loanAmountLabel">LKR 0.00</span>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-secondary" onclick="closeLoanModal()">Cancel</button>
+            <button class="btn btn-success" onclick="confirmLoanDetails()">Save Loan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Select Modal -->
+    <div id="customerSelectModal" class="modal">
+      <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+          <h2 class="modal-title">Select Customer</h2>
+          <button class="modal-close" onclick="closeCustomerSelectModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div style="margin-bottom: 15px;">
+            <input type="text" id="customerSearchModal" placeholder="Search customers..."
+              style="width: 100%; padding: 10px;" onkeyup="filterCustomersModal()">
+          </div>
+          <div style="max-height: 400px; overflow-y: auto;">
+            <table style="width: 100%;">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Loan</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="customerSelectTableBody">
+                <!-- Customers will be populated here -->
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top: 15px; text-align: center;">
+            <button class="btn btn-primary" onclick="window.location.href='customers.html'">Add New Customer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Receipt Print Section -->
+    <div id="receiptPrint" class="thermal-receipt print-section" style="display: none;">
+      <div class="receipt-header" style="text-align: center;">
+        <img id="printLogo" src="" style="max-width: 80px; display: none; margin: 0 auto 10px;">
+        <div id="printStoreName" class="receipt-store-line"></div>
+        <div id="printStoreDetails" class="receipt-subline"></div>
+      </div>
+
+      <div class="receipt-divider"></div>
+
+      <div class="receipt-info">
+        <div style="display: flex; justify-content: space-between;"><span>Invoice:</span><span
+            id="printInvoiceNumber"></span></div>
+        <div style="display: flex; justify-content: space-between;"><span>Date:</span><span id="printDate"></span></div>
+        <div style="display: flex; justify-content: space-between;"><span>Sales Code:</span><span
+            id="printSalesCode"></span></div>
+      </div>
+
+      <div class="receipt-divider"></div>
+
+      <div id="printItems" class="receipt-items"></div>
+
+      <div class="receipt-divider"></div>
+
+      <div class="receipt-summary">
+        <div class="receipt-summary-row">
+          <span>Subtotal:</span>
+          <span id="printSubtotal"></span>
+        </div>
+        <div class="receipt-summary-row">
+          <span>Discount:</span>
+          <span id="printDiscount"></span>
+        </div>
+        <div class="receipt-total">
+          <span>TOTAL:</span>
+          <span id="printTotal"></span>
+        </div>
+        <div class="receipt-divider"></div>
+        <div class="receipt-summary-row" style="display: flex; justify-content: space-between;">
+          <span>Payment : <span id="printPaymentType"></span> :</span>
+          <span id="printPaid"></span>
+        </div>
+        <div class="receipt-summary-row" style="display: flex; justify-content: space-between;">
+          <span>Balance:</span>
+          <span id="printBalance"></span>
+        </div>
+      </div>
+
+      <div id="printSavingsContainer" class="text-center"
+        style="margin-top: 10px; font-weight: 700; border: 1px dashed #000; padding: 5px; display: none;">
+        <span>YOU ARE SAVING: </span><span id="printSavingsAmount"></span>
+      </div>
+
+      <div class="receipt-footer">
+        <div id="printFooterMessage"></div>
+        <div class="dev-credit">Designed and Devolped By AMi</div>
+      </div>
+    </div>
+
+    <div class="app-footer">
+      <p>Developed & Designed By AMi (Prompt Eng)</p>
+    </div>
+
+    <!-- POS Music Player (toggle with 🎵 button) -->
+    <div id="posMusicPlayer" class="pos-music-player hidden" aria-hidden="true">
+      <div class="pos-music-player-header">
+        <div class="pos-music-player-title">Music Player</div>
+        <button class="btn btn-secondary btn-sm" id="posMusicCloseBtn" type="button" title="Close">×</button>
+      </div>
+      <div class="pos-music-player-body">
+        <div class="pos-music-row">
+          <label style="font-weight: 700;">Playlist</label>
+          <select id="posMusicTrackSelect"></select>
+          <div class="pos-music-small" id="posMusicNowPlaying">Not playing</div>
+        </div>
+        <div class="pos-music-controls">
+          <button class="btn btn-secondary btn-sm" id="posMusicPrevBtn" type="button">⏮</button>
+          <button class="btn btn-primary btn-sm" id="posMusicPlayPauseBtn" type="button">▶</button>
+          <button class="btn btn-secondary btn-sm" id="posMusicNextBtn" type="button">⏭</button>
+        </div>
+        <div class="pos-music-row">
+          <label style="font-weight: 700;">Volume</label>
+          <input id="posMusicVolume" type="range" min="0" max="100" step="1" value="20">
+          <div class="pos-music-small"><span id="posMusicVolumeLabel">20</span>%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- modals, etc -->
+    <!-- Receipt Actions Modal (appears after payment) -->
+    <div id="receiptActionsModal" class="modal">
+      <div class="modal-content" style="max-width: 480px; text-align: center;">
+        <div class="modal-header" style="justify-content: center; border-bottom: 2px solid var(--accent-success);">
+          <h2 class="modal-title">✅ Payment Confirmed!</h2>
+        </div>
+        <div style="padding: 10px 0;">
+          <p style="color: var(--text-secondary); margin-bottom: 5px;">Invoice <strong id="receiptActionInvoice"></strong> saved to sales history.</p>
+          <p style="font-size: 1.5em; font-weight: 800; color: var(--accent-primary); margin: 10px 0;" id="receiptActionTotal"></p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 15px 0;">
+          <button class="btn btn-warning btn-lg" onclick="receiptActionPrint()" style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:1em;">
+            🖨️ Print Normal
+          </button>
+          <button class="btn btn-primary btn-lg" onclick="receiptActionPrintQR()" style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:1em;">
+            🔳 Print Using QR
+          </button>
+          <button class="btn btn-secondary btn-lg" onclick="receiptActionPrintBarcode()" style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:1em;">
+            📦 Print Using Barcode
+          </button>
+          <button class="btn btn-print-server btn-lg" onclick="receiptActionPrintServer()" style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:1em;">
+            🖥️ Send to Server Print
+          </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0 0 0;">
+          <button class="btn btn-lg" onclick="receiptActionWhatsApp()" style="background: #25D366; color: white; display:flex; align-items:center; justify-content:center; gap:8px; font-size:1em;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            WhatsApp
+          </button>
+          <button class="btn btn-lg" onclick="receiptActionSMS()" style="background: #2196F3; color: white; display:flex; align-items:center; justify-content:center; gap:8px; font-size:1em;">
+            📱 SMS
+          </button>
+        </div>
+
+        <div style="margin-top: 5px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+          <div style="margin-bottom: 10px;">
+            <label style="font-size: 0.85em; color: var(--text-secondary); display: block; margin-bottom: 4px;">Customer Phone (for sharing)</label>
+            <input type="tel" id="sharePhoneNumber" placeholder="Enter phone number (e.g. 94771234567)"
+              style="width: 100%; padding: 10px; border: 2px solid var(--border-color); border-radius: 8px; font-size: 1em; background: var(--bg-secondary); color: var(--text-primary); text-align: center;"
+              onkeydown="if(event.key==='Enter') event.preventDefault();">
+          </div>
+          <button class="btn btn-success btn-lg btn-block" onclick="receiptActionDone()" style="font-size: 1.1em; padding: 14px;">
+            ✅ Done — New Bill
+          </button>
+        </div>
+      </div>
+    </div>
+
+  <!-- Recovery Modal -->
+  <div id="recoveryModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+      <div class="modal-header">
+        <h2 class="modal-title">Bill Recovery</h2>
+      </div>
+      <p style="margin: 20px 0;">We found an unsaved bill from your last session. Would you like to restore it?</p>
+      <div class="form-actions" style="justify-content: center;">
+        <button class="btn btn-primary" onclick="restoreDraftBill()">Restore</button>
+        <button class="btn btn-secondary" onclick="discardDraftBill()">Discard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hold Bills Modal -->
+  <div id="holdBillsModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Held Bills</h2>
+        <span class="close" onclick="closeHoldBillsModal()">&times;</span>
+      </div>
+      <div id="holdBillsList" style="margin-top: 20px;">
+        <!-- Held bills will be loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Create Product Modal -->
+  <div id="quickCreateModal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Product Not Found</h2>
+        <span class="close" onclick="closeQuickCreateModal()">&times;</span>
+      </div>
+      <p style="margin-bottom: 15px;">Item Code <strong id="quickCreateCode"></strong> not found. Create it now?</p>
+      <form id="quickCreateForm" onsubmit="handleQuickCreate(event)">
+        <div class="form-group">
+          <label>Product Name</label>
+          <input type="text" id="quickProdName" required>
+        </div>
+        <div class="form-group">
+          <label>Selling Price</label>
+          <input type="number" id="quickProdPrice" step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="quickProdCategory"></select>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeQuickCreateModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create & Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script src="customers.js"></script>
+  <script src="js/sync-manager.js"></script>
+  <script src="js/print-queue.js"></script>
+  <script src="pos.js"></script>
+  <script src="voice-control.js"></script>
+  <script src="js/turso-sync.js"></script>
+  <script src="js/invoice-core.js"></script>
+  <script src="js/receipt-printing.js"></script>
+  <script src="js/universal-scanner.js"></script>
+
+  <!-- Splash Screen Script -->
+  <script>
+    let splashDismissed = false;
+    function hideSplashNow() {
+      if (splashDismissed) return;
+      splashDismissed = true;
+      const splash = document.getElementById('splash');
+      const audio = document.getElementById('splashAudio');
+      if (!splash) return;
+      if (audio) {
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+        } catch (_) { }
+      }
+      splash.style.animation = 'fadeOut 0.25s forwards';
+      setTimeout(() => {
+        splash.style.display = 'none';
+        const main = document.getElementById('main-content');
+        if (main) main.style.display = 'block';
+        const salesCode = document.getElementById('salesCode');
+        if (salesCode) salesCode.focus();
+      }, 250);
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Alt') {
+        e.preventDefault();
+        hideSplashNow();
+      }
+    });
+
+    // Try to ensure splash music actually plays
+    document.addEventListener('DOMContentLoaded', () => {
+      // If we already did the HAC pre-login + access-granted sequence, skip this splash.
+      if (sessionStorage.getItem('skipIndexSplash') === 'true') {
+        try { sessionStorage.removeItem('skipIndexSplash'); } catch (_) { }
+        hideSplashNow();
+        return;
+      }
+
+      const audio = document.getElementById('splashAudio');
+      if (!audio) return;
+      audio.volume = 1.0;
+      const tryPlay = () => {
+        audio.play().catch(() => {
+          // If autoplay is blocked, wait for first user interaction
+          const handler = () => {
+            audio.play().catch(() => { /* give up silently */ });
+            window.removeEventListener('pointerdown', handler);
+            window.removeEventListener('keydown', handler);
+          };
+          window.addEventListener('pointerdown', handler, { once: true });
+          window.addEventListener('keydown', handler, { once: true });
+        });
+      };
+      tryPlay();
+    });
+
+    // Keep splash for ~3 seconds unless skipped with Alt
+    setTimeout(() => {
+      hideSplashNow();
+    }, 3000);
+
+    // --- Print Queue Helpers ---
+    function sendToServerPrint() {
+      const provider = localStorage.getItem('print_provider') || 'turso';
+      const receiptData = window.PrintQueue?.buildReceiptData ? window.PrintQueue.buildReceiptData() : (savedReceiptData || currentBill);
+      if (!receiptData || !receiptData.items || receiptData.items.length === 0) {
+        alert('No items in the bill to send for printing!');
+        return;
+      }
+
+      if (provider === 'supabase') {
+        if (!window.PrintQueue) { alert('Supabase print queue not available.'); return; }
+        window.PrintQueue.sendPrintJob(receiptData);
+        return;
+      }
+
+      if (!window.TursoSyncService?.enqueuePrintJob) {
+        alert('Turso print queue not available.');
+        return;
+      }
+      window.TursoSyncService.enqueuePrintJob(receiptData, 'server')
+        .then(() => alert('Receipt sent to Turso print queue.'))
+        .catch((e) => alert('Turso print queue failed: ' + e.message));
+    }
+
+    function receiptActionPrintQR() {
+      if (!window.ReceiptPrinting || !window.InvoiceCore) {
+        alert("QR printing utilities not loaded.");
+        return;
+      }
+      if (!savedReceiptData) {
+        alert("No receipt data available.");
+        return;
+      }
+      savedReceiptData.invoiceCore = window.InvoiceCore.buildEssentialInvoiceCoreFromSale(savedReceiptData);
+      window.ReceiptPrinting.printSaleQRReceipt(savedReceiptData);
+    }
+
+    function receiptActionPrintBarcode() {
+      if (!window.ReceiptPrinting || !window.InvoiceCore) {
+        alert("Barcode printing utilities not loaded.");
+        return;
+      }
+      if (!savedReceiptData) {
+        alert("No receipt data available.");
+        return;
+      }
+      savedReceiptData.invoiceCore = window.InvoiceCore.buildEssentialInvoiceCoreFromSale(savedReceiptData);
+      window.ReceiptPrinting.printSaleBarcodeReceipt(savedReceiptData);
+    }
+
+    function toggleServerMode(isServer) {
+      if (window.PrintQueue) window.PrintQueue.setAsServer(isServer);
+    }
+
+    function handleReceiptScanEnter(event) {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      processReceiptScanInput();
+    }
+
+    function processReceiptScanInput() {
+      const input = document.getElementById('receiptScanInput');
+      if (!input) return;
+      const raw = (input.value || '').trim();
+      if (!raw) return;
+
+      if (window.UniversalScanner?.handleUniversalScannerValue) {
+        window.UniversalScanner.handleUniversalScannerValue(raw);
+      } else {
+        alert('Scanner module not loaded.');
+      }
+      input.value = '';
+      input.focus();
+    }
+
+    function renameDevice() {
+      const current = window.PrintQueue ? window.PrintQueue.getDeviceName() : '';
+      const newName = prompt('Enter device name:', current);
+      if (newName && newName.trim()) {
+        window.PrintQueue.setDeviceName(newName.trim());
+        document.getElementById('deviceNameDisplay').textContent = newName.trim();
+      }
+    }
+
+    // Initialize device name display
+    document.addEventListener('DOMContentLoaded', () => {
+      // #region agent log
+      (function () {
+        try {
+          const url = 'http://127.0.0.1:7929/ingest/84521e1c-be37-4945-8616-6e9d7af141d9';
+          const payload = { sessionId: '7bec1d', runId: 'pre-fix', hypothesisId: 'H0', location: 'index.html:DOMContentLoaded', message: 'Debug logging ping', data: { origin: location.origin || 'file', href: location.href }, timestamp: Date.now() };
+          const body = JSON.stringify(payload);
+          if (navigator.sendBeacon) {
+            try {
+              const ok = navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+              if (ok) return;
+            } catch (_) { }
+          }
+          fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7bec1d' }, body }).catch(() => { });
+        } catch (_) { }
+      })();
+      // #endregion
+
+      setTimeout(() => {
+        if (window.PrintQueue) {
+          document.getElementById('deviceNameDisplay').textContent = window.PrintQueue.getDeviceName();
+          window.PrintQueue.updateServerUI();
+        }
+      }, 1000);
+
+      // Keep receipt scanner ready for hardware scanner input.
+      setTimeout(() => {
+        const receiptScanInput = document.getElementById('receiptScanInput');
+        if (receiptScanInput) receiptScanInput.focus();
+      }, 1200);
+
+      // Index-only configurable theme music
+      const POSMusic = (() => {
+        const audio = document.getElementById('indexThemeMusic');
+        const safeGetSettings = () => (window.getSettings ? window.getSettings() : JSON.parse(localStorage.getItem('settings') || '{}')) || {};
+        const clamp01 = (n) => Math.max(0, Math.min(1, n));
+        const toVol01 = (v) => {
+          const num = parseFloat(v);
+          if (!Number.isFinite(num)) return 0.2;
+          // Backward compatible: if someone stored 0-1 keep it; if stored 0-100 convert.
+          return clamp01(num > 1 ? (num / 100) : num);
+        };
+
+        const getPlaylist = () => {
+          const s = safeGetSettings();
+          const list = Array.isArray(s.indexMusicPaths) ? s.indexMusicPaths : [];
+          const merged = list.length ? list : [(s.indexMusicPath || 'HAC/2.mp3')];
+          return merged.map(x => String(x || '').trim()).filter(Boolean).slice(0, 10);
+        };
+
+        const getEnabled = () => !!safeGetSettings().indexMusicEnabled;
+        const getVolume01 = () => toVol01(safeGetSettings().indexMusicVolume);
+
+        const state = {
+          playlist: [],
+          idx: 0
+        };
+
+        const loadState = () => {
+          state.playlist = getPlaylist();
+          const saved = parseInt(localStorage.getItem('index_music_track_idx') || '0', 10);
+          state.idx = Number.isFinite(saved) ? Math.max(0, Math.min(state.playlist.length - 1, saved)) : 0;
+        };
+
+        const persistIdx = () => {
+          try { localStorage.setItem('index_music_track_idx', String(state.idx)); } catch (_) {}
+        };
+
+        const setTrack = (idx, { autoplay = true } = {}) => {
+          if (!audio) return;
+          loadState();
+          if (!state.playlist.length) return;
+          state.idx = Math.max(0, Math.min(state.playlist.length - 1, idx));
+          persistIdx();
+          const path = state.playlist[state.idx];
+          if (audio.getAttribute('src') !== path) audio.setAttribute('src', path);
+          audio.volume = getVolume01();
+          if (!getEnabled()) return;
+          if (!autoplay) return;
+          audio.play().catch(() => {
+            const unlock = () => {
+              audio.volume = getVolume01();
+              audio.play().catch(() => {});
+            };
+            window.addEventListener('pointerdown', unlock, { once: true });
+            window.addEventListener('keydown', unlock, { once: true });
+          });
+        };
+
+        const play = () => {
+          if (!audio) return;
+          if (!getEnabled()) return;
+          audio.volume = getVolume01();
+          audio.play().catch(() => {});
+        };
+
+        const pause = () => {
+          if (!audio) return;
+          try { audio.pause(); } catch (_) {}
+        };
+
+        const next = () => {
+          loadState();
+          if (state.playlist.length <= 1) return setTrack(state.idx, { autoplay: true });
+          const n = (state.idx + 1) % state.playlist.length;
+          setTrack(n, { autoplay: true });
+        };
+
+        const prev = () => {
+          loadState();
+          if (state.playlist.length <= 1) return setTrack(state.idx, { autoplay: true });
+          const p = (state.idx - 1 + state.playlist.length) % state.playlist.length;
+          setTrack(p, { autoplay: true });
+        };
+
+        const initPlayerUI = () => {
+          const panel = document.getElementById('posMusicPlayer');
+          const btn = document.getElementById('posMusicToggleBtn');
+          const closeBtn = document.getElementById('posMusicCloseBtn');
+          const sel = document.getElementById('posMusicTrackSelect');
+          const now = document.getElementById('posMusicNowPlaying');
+          const vol = document.getElementById('posMusicVolume');
+          const volLabel = document.getElementById('posMusicVolumeLabel');
+          const playPause = document.getElementById('posMusicPlayPauseBtn');
+          const nextBtn = document.getElementById('posMusicNextBtn');
+          const prevBtn = document.getElementById('posMusicPrevBtn');
+
+          if (!panel || !btn || !closeBtn || !sel || !vol || !playPause || !nextBtn || !prevBtn) return;
+
+          const render = () => {
+            loadState();
+            sel.innerHTML = '';
+            state.playlist.forEach((p, i) => {
+              const opt = document.createElement('option');
+              opt.value = String(i);
+              opt.textContent = p.split(/[\\/]/).pop() || p;
+              sel.appendChild(opt);
+            });
+            sel.value = String(state.idx);
+            const currentPath = state.playlist[state.idx] || '';
+            if (now) now.textContent = currentPath ? `Now: ${currentPath.split(/[\\/]/).pop()}` : 'Not playing';
+
+            const v01 = getVolume01();
+            const vPct = Math.round(v01 * 100);
+            vol.value = String(vPct);
+            if (volLabel) volLabel.textContent = String(vPct);
+
+            const paused = audio ? audio.paused : true;
+            playPause.textContent = paused ? '▶' : '⏸';
+          };
+
+          const show = () => { panel.classList.remove('hidden'); panel.setAttribute('aria-hidden', 'false'); render(); };
+          const hide = () => { panel.classList.add('hidden'); panel.setAttribute('aria-hidden', 'true'); };
+          btn.addEventListener('click', () => (panel.classList.contains('hidden') ? show() : hide()));
+          closeBtn.addEventListener('click', hide);
+
+          sel.addEventListener('change', () => {
+            const idx = parseInt(sel.value || '0', 10);
+            setTrack(Number.isFinite(idx) ? idx : 0, { autoplay: true });
+            render();
+          });
+
+          playPause.addEventListener('click', () => {
+            if (!audio) return;
+            if (audio.paused) play(); else pause();
+            render();
+          });
+
+          nextBtn.addEventListener('click', () => { next(); render(); });
+          prevBtn.addEventListener('click', () => { prev(); render(); });
+
+          vol.addEventListener('input', () => {
+            const pct = parseInt(vol.value || '0', 10);
+            const v01 = clamp01((Number.isFinite(pct) ? pct : 0) / 100);
+            if (audio) audio.volume = v01;
+            if (volLabel) volLabel.textContent = String(Math.round(v01 * 100));
+          });
+
+          vol.addEventListener('change', () => {
+            const pct = parseInt(vol.value || '0', 10);
+            const v01 = clamp01((Number.isFinite(pct) ? pct : 0) / 100);
+            // Persist to settings (0..1) so index music uses it too
+            if (window.saveSettings) window.saveSettings({ indexMusicVolume: v01 });
+            else {
+              const s = safeGetSettings();
+              s.indexMusicVolume = v01;
+              try { localStorage.setItem('settings', JSON.stringify(s)); } catch (_) {}
+            }
+          });
+
+          if (audio) {
+            audio.addEventListener('ended', () => {
+              // if loop attribute is removed in future, continue playlist
+              next();
+              render();
+            });
+            audio.addEventListener('play', render);
+            audio.addEventListener('pause', render);
+          }
+
+          // Initial render without forcing autoplay changes
+          render();
+        };
+
+        const start = () => {
+          if (!audio) return;
+          loadState();
+          setTrack(state.idx, { autoplay: true });
+        };
+
+        return { start, initPlayerUI, setTrack, next, prev, play, pause, getPlaylist };
+      })();
+
+      POSMusic.start();
+      POSMusic.initPlayerUI();
+
+      // Turso server-mode polling (when this device is the print server)
+      const poll = async () => {
+        let provider = localStorage.getItem('print_provider') || 'turso';
+        const supabaseConnected = !!window.SupabaseSyncService?.isConnected;
+        const tursoConnected = !!window.TursoSyncService?.enabled;
+
+        // Auto-enable server printing when DB connection exists.
+        if (supabaseConnected) provider = 'supabase';
+        else if (tursoConnected) provider = 'turso';
+        localStorage.setItem('print_provider', provider);
+        localStorage.setItem('server_mode_enabled', 'true');
+        localStorage.setItem('pos_is_print_server', 'true');
+
+        if (window.PrintQueue && provider === 'supabase') {
+          window.PrintQueue.setAsServer(true);
+        }
+
+        const serverEnabled = true;
+        if (!serverEnabled || provider !== 'turso') return;
+        if (!window.TursoSyncService?.fetchPendingPrintJobs) return;
+
+        const jobs = await window.TursoSyncService.fetchPendingPrintJobs('server').catch(() => []);
+        for (const job of jobs) {
+          try {
+            if (window.ReceiptPrinting?.printSaleNormalReceipt && job.receipt_data) {
+              window.ReceiptPrinting.printSaleNormalReceipt(job.receipt_data);
+              await window.TursoSyncService.markPrintJobPrinted(job.id);
+            }
+          } catch (_) { }
+        }
+      };
+      setInterval(poll, 5000);
+    });
+  </script>
+</body>
+
+</html>

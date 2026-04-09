@@ -1,0 +1,249 @@
+
+Build a advanced, fully offline POS web app using HTML, CSS, and JavaScript only.
+ follow below
+
+🏪 AMi POS (Offline Web App) — Final Blueprint
+⚙️ 1. Main Features
+🧾 POS / Billing
+
+Add item: Item Code, Name, Cost, Price, Qty
+
+Auto-calculate subtotal, discount, total, and balance
+
+Create New Bill (Ctrl + F1)
+
+Payment Modal (Ctrl + F2)
+
+Select payment type: Cash / Card / Cheque
+
+Enter amount received
+
+Show auto-calculated balance
+
+Confirm payment → Save sale → Ready for print
+
+Print Receipt (Ctrl + F5)
+
+80mm Epson thermal layout
+
+Compact format
+
+Store name, invoice no, sales code, total, balance
+
+Footer: “Developed & Designed By AMi (Prompt Eng)”
+
+📚 Sales History (Ctrl + F3)
+
+Columns:
+Invoice | Date | Item Code | Item | Qty | Amount | Profit | Sales Code
+
+Filters:
+
+By Date
+
+By Sales Code (employee)
+
+Totals:
+
+Total Amount
+
+Total Profit
+
+Total by Sales Code
+
+Total Sales Count
+
+Print full report (A4) or export as .csv
+
+💳 Payment Options
+
+Cash: shows balance instantly
+
+Card: mark as “Paid by Card” (no balance)
+
+Cheque: record cheque number + date
+
+Saved in each sale record under paymentType
+
+👨‍💼 Employee Management
+
+Add / Edit / Delete employee
+
+Fields: Sales Code | Name | Role | Contact | Salary
+
+Linked automatically to sales
+
+Summary per employee (total sales, profit)
+
+📦 Product Management
+
+Add / Edit / Delete items
+
+Fields: Item Code | Name | Cost | Price | Stock
+
+Auto stock update after sale
+
+Low-stock alert
+
+Product search & filter
+
+📊 Dashboard
+
+Today’s total sales, profit, top employee, top item
+
+Graphs (basic JS bar chart optional)
+
+Backup / Restore buttons
+
+Logout option
+
+🧭 2. Interface Design
+
+Modern flat UI with navbar for:
+POS | Sales | Employees | Products | Dashboard
+
+Modals: new sale, add employee, payment popup
+
+Dark/Light mode toggle
+
+Keyboard shortcuts:
+
+🧾 Ctrl + F1 → New Bill / Back to Invoice
+
+💳 Ctrl + F2 → Payment (Cash/Card/Cheque)
+
+🖨️ Ctrl + F5 → Print Receipt
+
+📚 Ctrl + F3 → Sales History
+
+Footer:
+
+Developed & Designed By AMi (Prompt Eng)
+
+🧠 3. Record Management
+
+Auto-generate invoice numbers: INV-00001, INV-00002, etc.
+
+Sales stored by date (e.g., salesData_2025-11-07)
+
+Employee and Product data kept separately
+
+Auto backup to .json (manual “Download Backup” too)
+
+“Factory Reset” clears all localStorage
+
+“Restore Backup” to upload .json
+
+🔐 4. Login System
+
+Username: cp123
+
+Passkey: 2005
+
+Stored locally, verified before opening the main app
+
+Optional “Remember Me” toggle
+
+Admin-only access to profit & salary details
+
+🖨️ 5. Printing Setup
+Type	Paper	Use
+Invoice	A4	Full report layout
+Receipt	80mm (Epson)	Compact for customer
+Sales History	A4 or CSV	Admin reports
+🗂️ 6. Folder Layout
+AMi-pos/
+│
+├── index.html          → POS / Billing
+├── sales.html          → Sales History
+├── employees.html      → Employee Management
+├── products.html       → Product Management
+├── dashboard.html      → Summary Dashboard
+├── login.html          → Login Screen
+│
+├── style.css           → All styles
+├── script.js           → Core logic + shortcuts
+│
+└── data/
+    ├── employees.json
+    ├── items.json
+
+
+
+
+
+
+
+
+
+
+
+    🔧 Additional Upgrades (Final Enhancements)
+🧾 Receipt Printing (Epson Thermal Printer)
+
+Uses exact 80mm paper width and physical printer size reference
+(around 145 × 195 × 148 mm — Epson standard)
+
+Optimized layout for Epson models — crisp text, logo space, and no page breaks
+
+Compact header and footer, perfect for customer copies
+
+Does not use A4; prints at thermal paper width automatically via CSS
+
+@page { size: 80mm auto; margin: 0; }
+
+⚙️ Settings Page
+
+Add a new tab or link on navbar → Settings
+
+Features:
+
+Edit Store Name, Address, and Contact Details
+
+Change Username & Passcode
+
+Change Date & Time format (12h / 24h, DD-MM-YYYY or MM-DD-YYYY)
+
+Update Receipt Front / Header (for branding, slogans)
+
+Live Receipt Preview (updates instantly as you edit)
+
+Auto-save all settings to localStorage
+
+🧾 Receipt Footer
+
+Footer permanently includes:
+
+Developed & Designed By AMi (Prompt Eng) (non-editable)
+
+Then add a customizable “thank you” message below it:
+
+“Thank you for shopping with us!”
+“Visit again!”
+“Stay connected — call us at [Store Contact]”
+
+These appear only on receipts, not invoices.
+
+🕒 Change Date & Time
+
+Settings page allows you to set preferred format (e.g., 07 Nov 2025, 10:45 AM)
+
+All printed receipts and invoices follow the selected format
+
+Option for manual override if the shop’s PC clock is wrong
+
+👀 Receipt Preview
+
+A small receipt mockup panel inside Settings
+
+Shows:
+
+Store logo or name
+
+Item example
+
+Totals section
+
+Footer with thank-you note
+
+Updates instantly when store info or formatting changes

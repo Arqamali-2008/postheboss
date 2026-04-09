@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMi POS - Customer Management</title>
+    <script src="lock.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="icon.png">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">AMi POS</div>
+            <ul class="nav-links">
+                <li><a href="index.html">POS</a></li>
+                <li><a href="sales.html">Sales</a></li>
+                <li><a href="employees.html">Employees</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="customers.html" class="active">Customers</a></li>
+                <li><a href="reports.html">Reports</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="analysis.html">Analysis</a></li>
+                <li><a href="barcode.html">Barcode</a></li>
+                <li><a href="settings.html">Settings</a></li>
+                <li><a href="emp/index.html">EMS</a></li>
+            </ul>
+            <div class="nav-actions">
+                <input type="text" id="invoiceSearch" placeholder="Search Invoice (Ctrl+I)" class="btn-sm"
+                    style="padding: 8px 10px; border: 2px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);"
+                    onkeypress="handleInvoiceSearchKey(event)">
+                <select id="themeSelect" onchange="changeTheme(this.value)" class="btn-sm"
+                    style="padding: 5px; border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="black">Black</option>
+                    <option value="gray-black">Gray - Black</option>
+                    <option value="blue">Blue</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Customer Management</h1>
+            <button class="btn btn-primary" onclick="openCustomerModal()">+ Add Customer</button>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="filters">
+            <div class="filter-group" style="flex: 1;">
+                <label>Search Customers</label>
+                <input type="text" id="customerSearch" placeholder="Search by name, phone, or email..."
+                    onkeyup="filterCustomers()">
+            </div>
+            <div class="filter-group">
+                <label>Filter by Status</label>
+                <select id="statusFilter" onchange="filterCustomers()">
+                    <option value="">All Customers</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="hasLoan">Has Loan</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Customers Table -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Customers</h2>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Contact</th>
+                            <th>Email</th>
+                            <th>Total Purchases</th>
+                            <th>Outstanding Loan</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customersTableBody">
+                        <tr>
+                            <td colspan="8" class="text-center">No customers found</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Modal -->
+    <div id="customerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="customerModalTitle">Add Customer</h2>
+                <button class="modal-close" onclick="closeCustomerModal()">&times;</button>
+            </div>
+            <form id="customerForm" onsubmit="saveCustomer(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="custName">Full Name *</label>
+                        <input type="text" id="custName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="custPhone">Phone Number *</label>
+                        <input type="tel" id="custPhone" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="custEmail">Email</label>
+                        <input type="email" id="custEmail">
+                    </div>
+                    <div class="form-group">
+                        <label for="custAddress">Address</label>
+                        <input type="text" id="custAddress">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="custStatus">Status</label>
+                        <select id="custStatus">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="custNotes">Notes</label>
+                        <input type="text" id="custNotes" placeholder="Additional information">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeCustomerModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Customer Details Modal -->
+    <div id="customerDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="customerDetailsTitle">Customer Details</h2>
+                <button class="modal-close" onclick="closeCustomerDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="customerDetailsContent">
+                    <!-- Customer details will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCustomerDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="app-footer">
+        <p>Developed & Designed By AMi (Prompt Eng)</p>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="customers.js"></script>
+    <script src="voice-control.js"></script>
+</body>
+
+</html>

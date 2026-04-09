@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="hacker">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HAC Boot</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { margin:0; background:#000; overflow:hidden; }
+    .stage {
+      position: fixed; inset: 0;
+      display:flex; align-items:center; justify-content:center;
+      background: #000;
+      color: #9dffbe;
+      font-family: 'Roboto Mono', monospace;
+    }
+    video {
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      object-fit: cover;
+      filter: contrast(1.08) saturate(1.1);
+    }
+    .overlay {
+      position: relative;
+      z-index: 2;
+      width: min(980px, 92vw);
+      padding: 28px 20px;
+      border: 1px solid rgba(0,255,136,0.28);
+      background: linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.25));
+      box-shadow: 0 0 40px rgba(0,255,136,0.12);
+      backdrop-filter: blur(6px);
+    }
+    .title {
+      font-size: 20px;
+      letter-spacing: 3px;
+      color:#d7ffe7;
+      text-transform: uppercase;
+      text-shadow: 0 0 16px rgba(0,255,136,0.35);
+      margin-bottom: 10px;
+    }
+    .log {
+      font-size: 13px;
+      line-height: 1.5;
+      color:#9dffbe;
+      white-space: pre-wrap;
+    }
+    .boot-logo {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border: 1px solid rgba(0,255,136,0.35);
+      background: rgba(0,0,0,0.45);
+      box-shadow: 0 0 20px rgba(0,255,136,0.2);
+      animation: logoPulse 1.2s ease-in-out infinite alternate;
+    }
+    .boot-logo img {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      box-shadow: 0 0 12px rgba(0,255,136,0.3);
+    }
+    .boot-logo span {
+      font-size: 11px;
+      letter-spacing: 1.6px;
+      color: #dcffe9;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .scanlines {
+      position:absolute; inset:0;
+      z-index: 1;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(120, 255, 170, 0.08) 0px,
+        rgba(120, 255, 170, 0.08) 1px,
+        rgba(0, 0, 0, 0) 3px,
+        rgba(0, 0, 0, 0) 4px
+      );
+      opacity: 0.35;
+      pointer-events:none;
+      animation: flicker 0.12s steps(2,end) infinite;
+    }
+    .transition {
+      position:absolute; inset:0;
+      z-index: 3;
+      pointer-events:none;
+      opacity: 0;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(0,255,136,0.35) 0%, rgba(0,255,136,0) 55%),
+        linear-gradient(90deg, rgba(0,255,136,0.12), rgba(0,0,0,0.85));
+      animation: none;
+    }
+    @keyframes flicker { 0%,100%{opacity:.38} 50%{opacity:.26} }
+    @keyframes hardCut {
+      0% { opacity: 0; transform: scale(1); }
+      8% { opacity: 1; transform: scale(1.02); }
+      40% { opacity: 0.2; }
+      100% { opacity: 0; transform: scale(1.03); }
+    }
+    @keyframes logoPulse {
+      from { transform: translateY(0) scale(1); box-shadow: 0 0 16px rgba(0,255,136,0.15); }
+      to { transform: translateY(-1px) scale(1.03); box-shadow: 0 0 24px rgba(0,255,136,0.35); }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <video id="vid" autoplay muted playsinline></video>
+    <div class="scanlines"></div>
+    <div class="transition" id="trans"></div>
+    <div class="overlay">
+      <div class="title" id="title">HAC :: Boot Sequence</div>
+      <div class="log" id="log"></div>
+    </div>
+    <div class="boot-logo">
+      <img src="icon.png" alt="POS">
+      <span>POS The Boss</span>
+    </div>
+  </div>
+
+  <audio id="a2" src="HAC/2.mp3" preload="auto"></audio>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const vid = $('vid');
+    const logEl = $('log');
+    const titleEl = $('title');
+    const trans = $('trans');
+
+    function safePlay(el, volume = 1.0) {
+      if (!el) return;
+      try {
+        el.volume = volume;
+        const p = el.play();
+        if (p && p.catch) p.catch(() => {});
+      } catch (_) {}
+    }
+    function safePlayMany(elements) {
+      if (!Array.isArray(elements)) return;
+      elements.forEach((el) => safePlay(el));
+    }
+    function safeStop(el) {
+      if (!el) return;
+      try { el.pause(); el.currentTime = 0; } catch (_) {}
+    }
+    function safeStopMany(elements) {
+      if (!Array.isArray(elements)) return;
+      elements.forEach((el) => safeStop(el));
+    }
+    function typeLines(lines, ms) {
+      const start = Date.now();
+      let i = 0;
+      logEl.textContent = '';
+      const tick = () => {
+        const elapsed = Date.now() - start;
+        const count = Math.min(lines.length, Math.floor((elapsed / ms) * lines.length));
+        if (count > i) {
+          for (; i < count; i++) logEl.textContent += lines[i] + '\n';
+        }
+        if (elapsed < ms) requestAnimationFrame(tick);
+      };
+      tick();
+    }
+
+    async function setVideo(src) {
+      vid.src = src;
+      try { await vid.play(); } catch (_) {}
+    }
+
+    function run() {
+      let skipped = false;
+      let t3 = null;
+
+      const goLogin = () => {
+        if (skipped) return;
+        skipped = true;
+        safeStop($('a2'));
+        try { sessionStorage.setItem('hacBootDone', 'true'); } catch (_) {}
+        window.location.href = 'login.html';
+      };
+
+      // Reset sequence markers every time boot starts.
+      try {
+        if (sessionStorage.getItem('hacFirstShowDone') !== 'true') {
+          window.location.href = 'first-show.html';
+          return;
+        }
+        sessionStorage.removeItem('hacLoginPassed');
+        sessionStorage.removeItem('skipIndexSplash');
+      } catch (_) {}
+
+      // Autoplay unlock fallback
+      const unlock = () => {
+        safePlay($('a2'), 1.0);
+      };
+      window.addEventListener('pointerdown', unlock, { once: true });
+      window.addEventListener('keydown', unlock, { once: true });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Alt') {
+          e.preventDefault();
+          if (t3) clearTimeout(t3);
+          goLogin();
+        }
+      });
+
+      // 2nd show (total 5s)
+      titleEl.textContent = 'HAC :: Breach Phase';
+      setVideo('HAC/2.mp4');
+      typeLines([
+        '[!] Target acquired.',
+        '[!] Escalating privileges...',
+        '[!] Cracking session keys...',
+        '[+] ACCESS GRANTED'
+      ], 2600);
+      safePlay($('a2'));
+
+      // End -> login (2nd show lasts 5s)
+      t3 = setTimeout(() => {
+        if (skipped) return;
+        safeStop($('a2'));
+        goLogin();
+      }, 5000);
+    }
+
+    document.addEventListener('DOMContentLoaded', run);
+  </script>
+</body>
+</html>
+

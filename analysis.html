@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMi POS - Analysis Dashboard</title>
+    <script src="lock.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="icon.png">
+    <!-- Chart.js -->
+    <script src="lib/chart.js"></script>
+    <style>
+        .graph-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .graph-card {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .graph-card h3 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            color: var(--text-primary);
+            text-align: center;
+        }
+
+        canvas {
+            max-width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .graph-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">AMi POS</div>
+            <ul class="nav-links">
+                <li><a href="index.html">POS</a></li>
+                <li><a href="sales.html">Sales</a></li>
+                <li><a href="employees.html">Employees</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="customers.html">Customers</a></li>
+                <li><a href="reports.html">Reports</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="analysis.html" class="active">Analysis</a></li>
+                <li><a href="settings.html">Settings</a></li>
+                <li><a href="emp/index.html">EMS</a></li>
+            </ul>
+            <div class="nav-actions">
+                <input type="text" id="invoiceSearch" placeholder="Search Invoice (Ctrl+I)" class="btn-sm"
+                    style="padding: 8px 10px; border: 2px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);"
+                    onkeypress="handleInvoiceSearchKey(event)">
+                <select id="themeSelect" onchange="changeTheme(this.value)" class="btn-sm"
+                    style="padding: 5px; border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="black">Black</option>
+                    <option value="gray-black">Gray - Black</option>
+                    <option value="blue">Blue</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Analysis Dashboard</h1>
+        </div>
+
+        <!-- Filters -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="filters">
+                <!-- Time Filter -->
+                <div class="filter-group">
+                    <label>Time Filter</label>
+                    <select id="analysisTimeFilter" onchange="handleTimeFilterChange()">
+                        <option value="today">Today</option>
+                        <option value="7days">Last 7 Days</option>
+                        <option value="this_month" selected>This Month</option>
+                        <option value="last_month">Last Month</option>
+                        <option value="this_year">This Year</option>
+                        <option value="custom">Custom Date Range</option>
+                    </select>
+                </div>
+                <div class="filter-group" id="customDateFromGroup" style="display:none;">
+                    <label>From Date</label>
+                    <input type="date" id="analysisFromDate" onchange="runAnalysis()">
+                </div>
+                <div class="filter-group" id="customDateToGroup" style="display:none;">
+                    <label>To Date</label>
+                    <input type="date" id="analysisToDate" onchange="runAnalysis()">
+                </div>
+
+                <!-- Entity Filters -->
+                <div class="filter-group">
+                    <label>Employee</label>
+                    <select id="analysisEmployee" onchange="runAnalysis()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Product</label>
+                    <select id="analysisProduct" onchange="runAnalysis()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Company</label>
+                    <select id="analysisCompany" onchange="runAnalysis()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Category 1</label>
+                    <select id="analysisCategory1" onchange="runAnalysis()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Category 2</label>
+                    <select id="analysisCategory2" onchange="runAnalysis()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <button class="btn btn-secondary" onclick="clearAnalysisFilters()" style="margin-top:20px;">Clear
+                        Filters</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table Analysis -->
+        <h2 style="margin-top:40px;">Detailed Item Analysis</h2>
+        <div class="card" style="margin-bottom: 20px;">
+            <div style="margin-bottom: 15px; display:flex; justify-content:space-between; align-items:center;">
+                <input type="text" id="analysisTableSearch" placeholder="Search by item, company, employee..."
+                    class="btn-sm"
+                    style="padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); width: 300px;"
+                    onkeyup="renderAnalysisTable()">
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="table" style="width: 100%; text-align: left; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-color);">
+                            <th style="padding: 10px;">Item Code</th>
+                            <th style="padding: 10px;">Name</th>
+                            <th style="padding: 10px;">Company</th>
+                            <th style="padding: 10px;">Category 1</th>
+                            <th style="padding: 10px;">Category 2</th>
+                            <th style="padding: 10px;">Employee</th>
+                            <th style="padding: 10px; text-align: right;">Qty Sold</th>
+                            <th style="padding: 10px; text-align: right;">Sales</th>
+                            <th style="padding: 10px; text-align: right;">Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analysisDataBody">
+                        <!-- Rows -->
+                    </tbody>
+                    <tfoot>
+                        <tr style="border-top: 2px solid var(--border-color); font-weight: bold;">
+                            <td colspan="6" style="padding: 10px; text-align: right;">Totals:</td>
+                            <td id="totQty" style="padding: 10px; text-align: right;">0</td>
+                            <td id="totSales" style="padding: 10px; text-align: right;">0</td>
+                            <td id="totProfit" style="padding: 10px; text-align: right;">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Performance Highlights -->
+        <h2 style="margin-top:40px;">Performance Highlights</h2>
+        <div class="graph-container">
+            <div class="graph-card">
+                <h3>Weekly Sales Heatmap</h3>
+                <div id="salesHeatmap" class="heatmap-container">
+                    <!-- Day segments will be generated here -->
+                </div>
+                <div
+                    style="display:flex; justify-content:space-between; margin-top:10px; color:var(--text-secondary); font-size:0.8em;">
+                    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                </div>
+            </div>
+            <div class="graph-card">
+                <h3>Top Selling Products</h3>
+                <div id="topProductsWidget" class="top-products-list">
+                    <!-- Top products will be generated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee Analysis -->
+        <h2 style="margin-top:30px;">Employee Analysis</h2>
+        <div class="graph-container">
+            <div class="graph-card">
+                <h3>Employee vs Products Sold</h3><canvas id="empProdChart"></canvas>
+            </div>
+            <div class="graph-card">
+                <h3>Employee vs Total Sales</h3><canvas id="empSalesChart"></canvas>
+            </div>
+            <div class="graph-card">
+                <h3>Employee vs Profit</h3><canvas id="empProfitChart"></canvas>
+            </div>
+            <div class="graph-card">
+                <h3>Employee vs Category 1</h3><canvas id="empCat1Chart"></canvas>
+            </div>
+            <div class="graph-card">
+                <h3>Employee vs Category 2</h3><canvas id="empCat2Chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Product Analysis -->
+        <h2 style="margin-top:40px;">Product Analysis</h2>
+        <div class="graph-container">
+            <div class="graph-card">
+                <h3>Product vs Profit</h3><canvas id="prodProfitChart"></canvas>
+            </div>
+            <div class="graph-card">
+                <h3>Product vs Total Sales</h3><canvas id="prodSalesChart"></canvas>
+            </div>
+            <div class="graph-card">
+                <h3>Product vs Category 1</h3><canvas id="prodCat1Chart"></canvas>
+            </div>
+            <div class="graph-card">
+                <h3>Product vs Category 2</h3><canvas id="prodCat2Chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Performance Graphs -->
+        <h2 style="margin-top:40px;">Performance (Top 20)</h2>
+        <div class="graph-container">
+            <div class="graph-card">
+                <h3>Top 20 Products</h3><canvas id="topProdChart"></canvas>
+            </div>
+            <div class="graph-card">
+                <h3>Top 20 Employees</h3><canvas id="topEmpChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Product Trend Analysis -->
+        <h2 style="margin-top:40px;">Product Trend Analysis</h2>
+        <div class="graph-container">
+            <div class="graph-card">
+                <h3>Product Sales by Day</h3><canvas id="trendDayChart"></canvas>
+            </div>
+            <div class="graph-card">
+                <h3>Product Sales by Month</h3><canvas id="trendMonthChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Advanced Line Graph Analysis -->
+        <h2 style="margin-top:40px;">Advanced Line Graph Analysis</h2>
+        <div style="margin-bottom:15px; display:flex; gap:10px;">
+            <label>Compare Metric: </label>
+            <select id="advMetric" onchange="runAnalysis()">
+                <option value="sales">Sales</option>
+                <option value="profit">Profit</option>
+            </select>
+        </div>
+        <div class="graph-container">
+            <div class="graph-card">
+                <h3>Month-to-Month (Current vs Previous)</h3><canvas id="advMonth2MonthChart"></canvas>
+            </div>
+            <div class="graph-card">
+                <h3>This Year Day vs Last Year Same Day</h3><canvas id="advYearDayChart"></canvas>
+            </div>
+            <div class="graph-card">
+                <h3>This Year Month vs Last Year Month</h3><canvas id="advYearMonthChart"></canvas>
+            </div>
+            <div class="graph-card">
+                <h3>Full Year Comparison</h3><canvas id="advFullYearChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="app-footer">
+        <p>Developed & Designed By AMi (Prompt Eng)</p>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="analysis.js"></script>
+    <script src="voice-control.js"></script>
+</body>
+
+</html>

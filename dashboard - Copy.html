@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMi POS - Dashboard</title>
+    <script src="lock.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="icon.png">
+
+  <style>
+    /* ====================================================== */
+    /* 🎨 THRILLING BUTTON & UI ANIMATIONS                    */
+    /* ====================================================== */
+
+    /* --- Button Hover Glow & Lift --- */
+    .btn {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    }
+    .btn::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 0; height: 0;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.5s ease, height 0.5s ease;
+    }
+    .btn:hover::after {
+      width: 300px; height: 300px;
+    }
+    .btn:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+    }
+    .btn:active {
+      transform: translateY(0px) scale(0.97) !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+      transition: all 0.1s !important;
+    }
+
+    /* --- Card Hover Animations --- */
+    .card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+
+    /* --- Stat Card Shine Effect --- */
+    .stat-card {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.05) 50%, transparent 70%);
+      transform: rotate(45deg);
+      transition: all 0.6s;
+    }
+    .stat-card:hover::before {
+      left: 100%;
+    }
+    .stat-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+    }
+
+    /* --- Nav Link Animations --- */
+    .nav-links a {
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    }
+    .nav-links a::before {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 50%;
+      width: 0; height: 2px;
+      background: var(--accent-primary);
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+    .nav-links a:hover::before {
+      width: 80%;
+    }
+    .nav-links a:hover {
+      transform: translateY(-2px);
+    }
+
+    /* --- Table Row Animation --- */
+    table tbody tr {
+      transition: all 0.3s ease;
+    }
+    table tbody tr:hover {
+      transform: scale(1.005);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* --- Input Focus Glow --- */
+    input:focus, select:focus {
+      box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.2) !important;
+      transition: box-shadow 0.3s ease !important;
+    }
+
+    /* --- Page Load Stagger --- */
+    @keyframes fadeSlideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .container { animation: fadeSlideUp 0.5s ease; }
+    .stats-grid .stat-card:nth-child(1) { animation: fadeSlideUp 0.4s ease 0.05s both; }
+    .stats-grid .stat-card:nth-child(2) { animation: fadeSlideUp 0.4s ease 0.1s both; }
+    .stats-grid .stat-card:nth-child(3) { animation: fadeSlideUp 0.4s ease 0.15s both; }
+    .stats-grid .stat-card:nth-child(4) { animation: fadeSlideUp 0.4s ease 0.2s both; }
+
+    /* ====================================================== */
+    /* 📱 MOBILE RESPONSIVE LAYOUT                            */
+    /* ====================================================== */
+
+    @media (max-width: 1024px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+
+    @media (max-width: 768px) {
+      /* Navbar: scrollable horizontal links */
+      .nav-container { flex-direction: column; gap: 8px; padding: 0 10px; }
+      .nav-links { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 4px; padding: 4px 0; width: 100%; scrollbar-width: none; }
+      .nav-links::-webkit-scrollbar { display: none; }
+      .nav-links li { flex-shrink: 0; }
+      .nav-links a { padding: 6px 12px; font-size: 0.85em; white-space: nowrap; border-radius: 20px; }
+      .nav-logo { font-size: 1.2em; }
+      
+      .page-header { flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 20px; }
+      .header-actions { flex-direction: column; gap: 10px; }
+      .header-actions .btn { width: 100%; }
+
+      /* Stats: stack on mobile */
+      .stats-grid { grid-template-columns: 1fr !important; gap: 10px; }
+      .stat-card { padding: 15px; }
+
+      .card { padding: 15px; }
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 10px 8px; }
+      .page-title { font-size: 1.2em; }
+      .nav-links a { padding: 4px 8px; font-size: 0.8em; }
+      .stat-value { font-size: 1.4em; }
+    }
+  </style>
+
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">AMi POS</div>
+            <ul class="nav-links">
+                <li><a href="index.html">POS</a></li>
+                <li><a href="sales.html">Sales</a></li>
+                <li><a href="employees.html">Employees</a></li>
+                <li><a href="products.html">Products</a></li>
+                <li><a href="customers.html">Customers</a></li>
+                <li><a href="reports.html">Reports</a></li>
+                <li><a href="dashboard.html" class="active">Dashboard</a></li>
+                <li><a href="analysis.html">Analysis</a></li>
+                <li><a href="barcode.html">Barcode</a></li>
+                <li><a href="settings.html">Settings</a></li>
+                <li><a href="emp/index.html">EMS</a></li>
+            </ul>
+            <div class="nav-actions">
+                <input type="text" id="invoiceSearch" placeholder="Search Invoice (Ctrl+I)" class="btn-sm"
+                    style="padding: 8px 10px; border: 2px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);"
+                    onkeypress="handleInvoiceSearchKey(event)">
+                <select id="themeSelect" onchange="changeTheme(this.value)" class="btn-sm"
+                    style="padding: 5px; border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="black">Black</option>
+                    <option value="gray-black">Gray - Black</option>
+                    <option value="blue">Blue</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Dashboard</h1>
+            <div>
+                <button class="btn btn-primary" onclick="downloadBackup()">Download Backup</button>
+                <button class="btn btn-success" onclick="restoreBackup()">Restore Backup</button>
+                <button class="btn btn-danger" onclick="factoryReset()">Factory Reset</button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Today's Sales</div>
+                <div class="stat-value" id="todaySales">₹0.00</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-label">Today's Profit</div>
+                <div class="stat-value" id="todayProfit">₹0.00</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-label">Today's Transactions</div>
+                <div class="stat-value" id="todayCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Top Employee</div>
+                <div class="stat-value" id="topEmployee">-</div>
+            </div>
+        </div>
+
+        <!-- Top Items -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Top Selling Items (Today)</h2>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Code</th>
+                            <th>Item Name</th>
+                            <th>Quantity Sold</th>
+                            <th>Total Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topItemsTableBody">
+                        <tr>
+                            <td colspan="4" class="text-center">No sales today</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Backup File Input (Hidden) -->
+        <input type="file" id="backupFileInput" accept=".json" style="display: none;"
+            onchange="handleBackupUpload(event)">
+    </div>
+
+    <!-- Footer -->
+    <div class="app-footer">
+        <p>Developed & Designed By AMi (Prompt Eng)</p>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="voice-control.js"></script>
+</body>
+
+</html>
